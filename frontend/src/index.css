@@ -178,7 +178,7 @@ html, body, #root {
 }
 
 .badge-locked {
-  background: rgba(239, 68, 68, 0.12);
+  background: rgba(239, 68, 68, 0.15);
   color: #f87171;
 }
 

@@ -3,6 +3,7 @@ import Sidebar from './Sidebar.jsx'
 import BackgroundCreator from './pages/BackgroundCreator.jsx'
 import QuickGenerate from './pages/QuickGenerate.jsx'
 import ThumbnailCreator from './pages/ThumbnailCreator.jsx'
+import EditPhoto from './pages/EditPhoto.jsx'
 import History from './pages/History.jsx'
 
 // ── History context — shared across all pages ──────────────
@@ -16,21 +17,35 @@ const PAGES = {
   background: BackgroundCreator,
   quick:      QuickGenerate,
   thumbnail:  ThumbnailCreator,
+  editphoto:  EditPhoto,
   history:    History,
 }
 
 export default function App() {
   const [page, setPage]       = useState('thumbnail')
   const [history, setHistory] = useState([])   // { id, image, label, ts, ratio }
+  // A history item queued up to be opened in the dedicated Edit Photo
+  // section — set by History.jsx, consumed once by EditPhoto on mount,
+  // then cleared.
+  const [editPhotoRequest, setEditPhotoRequest] = useState(null)
 
   function addToHistory(item) {
     setHistory(prev => [item, ...prev].slice(0, 50))  // keep last 50
   }
 
+  function openEditPhoto(item) {
+    setEditPhotoRequest(item)
+    setPage('editphoto')
+  }
+
+  function clearEditPhotoRequest() {
+    setEditPhotoRequest(null)
+  }
+
   const PageComponent = PAGES[page] || ThumbnailCreator
 
   return (
-    <HistoryContext.Provider value={{ history, addToHistory }}>
+    <HistoryContext.Provider value={{ history, addToHistory, editPhotoRequest, openEditPhoto, clearEditPhotoRequest }}>
       <div className="app-shell">
         <Sidebar activePage={page} onNavigate={setPage} historyCount={history.length} />
         <main className="main-content">

@@ -1,6 +1,11 @@
 import { useState, useRef } from 'react'
 import { useHistory } from '../App.jsx'
 
+// Locked pending further rollout — see the "AI Provider" card and "Image
+// Quality" row below for where these are enforced in the UI.
+const GEMINI_LOCKED = true
+const HIGH_QUALITY_LOCKED = true
+
 // ── Brand presets ────────────────────────────────────────────
 // Each preset has a SEPARATE prompt per provider, on purpose:
 // - `gemini` is heavily scaffolded to work around Nano Banana's specific
@@ -131,9 +136,13 @@ export default function ThumbnailCreator() {
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [showPrompt, setShowPrompt] = useState(false)
-  const [provider, setProvider]   = useState('gemini')   // 'gemini' | 'openai'
-  const [quality, setQuality]     = useState('medium')   // OpenAI only: 'low' | 'medium' | 'high'
-  const [enrichPrompt, setEnrichPrompt] = useState(true)  // OpenAI only: ChatGPT-style prompt rewrite on/off
+  // Default provider is OpenAI at Low quality with enrichment off — the
+  // lowest-cost combination — since Gemini and High quality are locked below
+  // to control spend. Flip GEMINI_LOCKED/HIGH_QUALITY_LOCKED above to
+  // re-enable either once you're ready.
+  const [provider, setProvider]   = useState('openai')   // 'gemini' | 'openai'
+  const [quality, setQuality]     = useState('low')       // OpenAI only: 'low' | 'medium' | 'high'
+  const [enrichPrompt, setEnrichPrompt] = useState(false)  // OpenAI only: ChatGPT-style prompt rewrite on/off
 
   function handleApplyPreset(preset) {
     if (!headline.trim()) {
@@ -244,15 +253,19 @@ export default function ThumbnailCreator() {
           <div className="card">
             <div className="card-title">AI Provider</div>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 10 }}>
-              Switch between image generation providers to compare quality and cost per thumbnail.
+              OpenAI (GPT Image 2) is the active provider. Gemini is temporarily locked to control spend.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 className="btn-secondary"
-                style={provider === 'gemini' ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
-                onClick={() => setProvider('gemini')}
+                disabled={GEMINI_LOCKED}
+                title={GEMINI_LOCKED ? 'Gemini is temporarily locked to control costs.' : undefined}
+                style={GEMINI_LOCKED
+                  ? { opacity: 0.5, cursor: 'not-allowed' }
+                  : (provider === 'gemini' ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined)}
+                onClick={() => !GEMINI_LOCKED && setProvider('gemini')}
               >
-                {provider === 'gemini' ? '✓ ' : ''}Gemini (Nano Banana Pro) — ~$0.13/image
+                {GEMINI_LOCKED ? '🔒 ' : provider === 'gemini' ? '✓ ' : ''}Gemini (Nano Banana Pro) — Locked
               </button>
               <button
                 className="btn-secondary"
@@ -280,20 +293,25 @@ export default function ThumbnailCreator() {
                   {[
                     { key: 'low',    label: 'Low',    cost: '~$0.005/image' },
                     { key: 'medium', label: 'Medium', cost: '~$0.041/image' },
-                    { key: 'high',   label: 'High',   cost: '~$0.165/image' },
+                    { key: 'high',   label: 'High',   cost: '~$0.165/image', locked: HIGH_QUALITY_LOCKED },
                   ].map(q => (
                     <button
                       key={q.key}
                       className="btn-secondary"
-                      style={quality === q.key ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
-                      onClick={() => setQuality(q.key)}
+                      disabled={q.locked}
+                      title={q.locked ? 'High quality is temporarily locked to control costs.' : undefined}
+                      style={q.locked
+                        ? { opacity: 0.5, cursor: 'not-allowed' }
+                        : (quality === q.key ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined)}
+                      onClick={() => !q.locked && setQuality(q.key)}
                     >
-                      {quality === q.key ? '✓ ' : ''}{q.label} <span style={{ opacity: 0.6, fontSize: 10 }}>{q.cost}</span>
+                      {q.locked ? '🔒 ' : quality === q.key ? '✓ ' : ''}{q.label} <span style={{ opacity: 0.6, fontSize: 10 }}>{q.cost}</span>
                     </button>
                   ))}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 8 }}>
-                  Medium is a good default — try Low for quick drafts, High only when quality really needs it.
+                  Low is the default to keep costs minimal. Medium is available for when quality needs
+                  a bump — High is temporarily locked.
                 </div>
 
                 <div style={{ marginTop: 14 }}>

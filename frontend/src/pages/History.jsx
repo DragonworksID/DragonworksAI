@@ -1,7 +1,7 @@
 import { useHistory } from '../App.jsx'
 
 export default function History() {
-  const { history } = useHistory()
+  const { history, openEditPhoto } = useHistory()
 
   function download(item) {
     const a = document.createElement('a')
@@ -16,7 +16,9 @@ export default function History() {
         <div className="page-title">Generation History</div>
         <div className="page-title-accent" />
         <div className="page-subtitle">
-          Images generated this session. History resets when you refresh the page.
+          Images generated this session. Click any result to open it in Edit Photo, where you can
+          describe a small adjustment or revision and apply it directly to that image.
+          History resets when you refresh the page.
         </div>
       </div>
 
@@ -34,16 +36,42 @@ export default function History() {
           <div className="history-grid">
             {history.map(item => (
               <div className="history-card" key={item.id}>
-                <img
-                  src={`data:image/png;base64,${item.image}`}
-                  alt={item.label}
-                  style={{
-                    width: '100%',
-                    aspectRatio: item.ratio === 'Landscape' ? '16/9' : item.ratio === 'Square' ? '1/1' : '9/16',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
+                <div
+                  onClick={() => openEditPhoto(item)}
+                  title="Click to edit this image"
+                  style={{ position: 'relative', cursor: 'pointer' }}
+                >
+                  <img
+                    src={`data:image/png;base64,${item.image}`}
+                    alt={item.label}
+                    style={{
+                      width: '100%',
+                      aspectRatio: item.ratio === 'Landscape' ? '16/9' : item.ratio === 'Square' ? '1/1' : '9/16',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                  <div
+                    className="history-card-hover-hint"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.55)',
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      opacity: 0,
+                      transition: 'opacity 0.15s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = 1 }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = 0 }}
+                  >
+                    ✏️ Click to edit photo
+                  </div>
+                </div>
                 <div className="history-card-info">
                   <div className="history-card-label">{item.label}</div>
                   <div className="history-card-meta">
@@ -51,6 +79,9 @@ export default function History() {
                   </div>
                 </div>
                 <div className="history-card-actions">
+                  <button className="btn-secondary" style={{ flex: 1 }} onClick={() => openEditPhoto(item)}>
+                    ✏️ Edit Photo
+                  </button>
                   <button className="btn-secondary" style={{ flex: 1 }} onClick={() => download(item)}>
                     ⬇ Download
                   </button>

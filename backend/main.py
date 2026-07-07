@@ -433,6 +433,54 @@ def _openai_generate_thumbnail_edit(prompt: str,
     return base64.b64decode(b64)
 
 
+def openai_edit_photo(prompt: str, img_bytes: bytes, img_mime: str) -> bytes:
+    """
+    Dedicated Edit Photo path — a TRUE single-image edit, not the multi-
+    reference "generate" mode used by Thumbnail Creator. Uses `images.edit`
+    with exactly one input image, so OpenAI treats it as the literal edit
+    target (per OpenAI's own docs: "the mask will be applied to the first
+    image") rather than a creative reference for a brand-new composition.
+    That literal-edit behavior is exactly what a "adjust/fix this specific
+    photo" feature needs — it's the same behavior Thumbnail Creator
+    deliberately avoids by using the Responses API instead.
+
+    Hardcoded to `quality="low"` — Edit Photo is meant for small, cheap
+    touch-ups, not full recompositions, so it always runs at the lowest
+    cost tier regardless of what Thumbnail Creator's quality setting is.
+    """
+    import io
+    from openai import OpenAI
+
+    client = OpenAI(api_key=OPENAI_API_KEY)
+
+    try:
+        img_png = _normalize_image_for_openai(img_bytes)
+    except Exception as e:
+        raise RuntimeError(
+            f"Couldn't read the uploaded photo as an image ({e}). "
+            "Try re-saving/re-exporting it and uploading again."
+        )
+
+    img_file = io.BytesIO(img_png)
+    img_file.name = "photo.png"
+
+    result = client.images.edit(
+        model=OPENAI_IMAGE_MODEL,
+        image=img_file,
+        prompt=prompt,
+        size="auto",
+        quality="low",
+    )
+
+    if not result.data:
+        raise RuntimeError("OpenAI returned no image. Check your API key, org verification, and quota.")
+
+    b64 = result.data[0].b64_json
+    if not b64:
+        raise RuntimeError("OpenAI returned no image data.")
+    return base64.b64decode(b64)
+
+
 def enrich_openai_prompt(base_prompt: str, headline: str,
                          bg_bytes: bytes, bg_mime: str,
                          base_bytes: bytes, base_mime: str,
@@ -903,6 +951,44 @@ async def generate_thumbnail(
         "enrichment_used": enrichment_used,
         "enrichment_error": enrichment_error,
         "label":  headline.strip()[:60],
+    }
+
+
+@app.post("/api/edit-photo")
+async def edit_photo(
+    prompt: str = Form(...),
+    image:  UploadFile = File(...),
+):
+    """
+    Dedicated Edit Photo endpoint — takes ONE photo plus a plain-language
+    instruction and applies a true image edit via OpenAI's `images.edit`
+    (see `openai_edit_photo()`). Always OpenAI, always Low quality —
+    there's no provider/quality choice here on purpose, this feature exists
+    specifically to be the cheap, quick "small adjustment" path.
+    """
+    if not OPENAI_API_KEY:
+        raise HTTPException(500, detail="OPENAI_API_KEY is not set on the server.")
+    if not prompt.strip():
+        raise HTTPException(400, detail="Please describe the edit you want.")
+
+    img_bytes = await image.read()
+    if not img_bytes:
+        raise HTTPException(400, detail="Photo is empty or missing.")
+
+    try:
+        result_bytes = openai_edit_photo(prompt.strip(), img_bytes, image.content_type or "image/jpeg")
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
+
+    return {
+        "success": True,
+        "id":     str(uuid.uuid4())[:8],
+        "image":  base64.b64encode(result_bytes).decode(),
+        "format": "png",
+        "provider_used": "openai",
+        "quality_used": "low",
+        "prompt_used": prompt.strip(),
+        "label":  prompt.strip()[:60],
     }
 
 

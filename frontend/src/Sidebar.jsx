@@ -14,34 +14,27 @@ export default function Sidebar({ activePage, onNavigate, historyCount }) {
 
         <NavItem
           icon="🖼️"
-          label="Background Creator"
-          badge="LOCKED"
-          disabled
-        />
-        <NavItem
-          icon="⚡"
-          label="Quick Generate"
-          badge="LOCKED"
-          disabled
-        />
-        <NavItem
-          icon="📌"
           label="Thumbnail Creator"
           badge="NEW"
           active={activePage === 'thumbnail'}
           onClick={() => onNavigate('thumbnail')}
         />
-        <NavItem
-          icon="📦"
-          label="Batch Mode"
-          badge="SOON"
-          disabled
-        />
+        {/* Locked to control AI spend — team doesn't currently use these. */}
+        <NavItem icon="🖼️" label="Background Creator" lockedBadge disabled />
+        <NavItem icon="⚡" label="Quick Generate" lockedBadge disabled />
+        <NavItem icon="📦" label="Batch Mode" badge="SOON" disabled />
       </div>
 
-      {/* Photo Editor (coming soon) */}
+      {/* Photo Editor */}
       <div className="sidebar-section">
         <div className="sidebar-section-label">Photo Editor</div>
+        <NavItem
+          icon="✏️"
+          label="Edit Photo"
+          badge="NEW"
+          active={activePage === 'editphoto'}
+          onClick={() => onNavigate('editphoto')}
+        />
         <NavItem icon="🎨" label="Style Transfer" badge="SOON" disabled />
         <NavItem icon="✂️" label="Remove Background" badge="SOON" disabled />
         <NavItem icon="🔄" label="Upscale Image"    badge="SOON" disabled />
@@ -68,22 +61,23 @@ export default function Sidebar({ activePage, onNavigate, historyCount }) {
             <span className="version-num">v1.0</span>
             <span className="pro-badge">INTERNAL</span>
           </div>
-          <div className="version-date">Powered by Gemini AI</div>
+          <div className="version-date">Dragonworks AI Dept.</div>
         </div>
       </div>
     </aside>
   )
 }
 
-function NavItem({ icon, label, badge, active, disabled, onClick }) {
+function NavItem({ icon, label, badge, lockedBadge, active, disabled, onClick }) {
   const cls = ['nav-item', active ? 'active' : '', disabled ? 'disabled' : ''].join(' ')
   return (
     <button className={cls} onClick={disabled ? undefined : onClick} disabled={disabled}>
       <span className="nav-icon">{icon}</span>
       <span>{label}</span>
+      {lockedBadge && <span className="badge badge-locked">🔒 LOCKED</span>}
       {badge && (
-        <span className={`badge ${badge === 'NEW' ? 'badge-new' : badge === 'LOCKED' ? 'badge-locked' : 'badge-soon'}`}>
-          {badge === 'LOCKED' ? '🔒 LOCKED' : badge}
+        <span className={`badge ${badge === 'NEW' ? 'badge-new' : 'badge-soon'}`}>
+          {badge}
         </span>
       )}
     </button>
