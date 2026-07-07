@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: dragonworksai
+    runtime: python
+    plan: free
+    # Installs the backend's Python deps, then builds the React frontend
+    # into frontend/dist so the backend can serve it directly (see the
+    # StaticFiles mount at the bottom of backend/main.py).
+    buildCommand: "pip install -r backend/requirements.txt && cd frontend && npm install && npm run build"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      # Set the actual values in the Render dashboard (Environment tab) —
+      # `sync: false` just means "required, but don't store the value in
+      # this file / git history".
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      # Shared login for the whole team — leave both blank in the dashboard
+      # ONLY if you're intentionally fine with the site being fully public.
+      - key: SITE_USERNAME
+        sync: false
+      - key: SITE_PASSWORD
+        sync: false
