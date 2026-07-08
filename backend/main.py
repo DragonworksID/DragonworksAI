@@ -8,7 +8,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -595,16 +595,26 @@ def _openai_generate_thumbnail_edit(prompt: str,
     return base64.b64decode(b64)
 
 
-def openai_edit_photo(prompt: str, img_bytes: bytes, img_mime: str) -> bytes:
+def openai_edit_photo(prompt: str, img_bytes: bytes, img_mime: str,
+                       reference_images: list = None) -> bytes:
     """
     Dedicated Edit Photo path — a TRUE single-image edit, not the multi-
     reference "generate" mode used by Thumbnail Creator. Uses `images.edit`
-    with exactly one input image, so OpenAI treats it as the literal edit
-    target (per OpenAI's own docs: "the mask will be applied to the first
-    image") rather than a creative reference for a brand-new composition.
-    That literal-edit behavior is exactly what a "adjust/fix this specific
-    photo" feature needs — it's the same behavior Thumbnail Creator
-    deliberately avoids by using the Responses API instead.
+    with the base photo as the FIRST input image, so OpenAI treats it as the
+    literal edit target (per OpenAI's own docs: "the mask will be applied to
+    the first image") rather than a creative reference for a brand-new
+    composition. That literal-edit behavior is exactly what a "adjust/fix
+    this specific photo" feature needs — it's the same behavior Thumbnail
+    Creator deliberately avoids by using the Responses API instead.
+
+    `reference_images`: optional list of (bytes, mime) tuples — extra photos
+    (a logo, an object, a background to swap in) appended AFTER the base
+    photo. images.edit accepts multiple input images and can pull elements
+    from the later ones while still editing the first — the prompt text is
+    what tells it how to use them, since this endpoint (unlike the Responses
+    API path) has no way to attach a caption to each individual image.
+    Purely additive: omit this and behavior is identical to before it
+    existed.
 
     Hardcoded to `quality="low"` — Edit Photo is meant for small, cheap
     touch-ups, not full recompositions, so it always runs at the lowest
@@ -626,9 +636,25 @@ def openai_edit_photo(prompt: str, img_bytes: bytes, img_mime: str) -> bytes:
     img_file = io.BytesIO(img_png)
     img_file.name = "photo.png"
 
+    images = [img_file]
+    for i, (ref_bytes, ref_mime) in enumerate(reference_images or []):
+        try:
+            ref_png = _normalize_image_for_openai(ref_bytes)
+        except Exception as e:
+            raise RuntimeError(
+                f"Couldn't read reference image {i + 1} ({e}). "
+                "Try re-saving/re-exporting it and uploading again."
+            )
+        ref_file = io.BytesIO(ref_png)
+        ref_file.name = f"reference_{i + 1}.png"
+        images.append(ref_file)
+
     result = client.images.edit(
         model=OPENAI_IMAGE_MODEL,
-        image=img_file,
+        # Bare file (not a list) when there are no references, to keep this
+        # call byte-for-byte identical to before for the common no-reference
+        # case — only switch to the list form once there's something to add.
+        image=images if len(images) > 1 else images[0],
         prompt=prompt,
         size="auto",
         quality="low",
@@ -1132,6 +1158,7 @@ async def edit_photo(
     request: Request,
     prompt: str = Form(...),
     image:  UploadFile = File(...),
+    reference_images: List[UploadFile] = File(default=[]),
 ):
     """
     Dedicated Edit Photo endpoint — takes ONE photo plus a plain-language
@@ -1139,6 +1166,11 @@ async def edit_photo(
     (see `openai_edit_photo()`). Always OpenAI, always Low quality —
     there's no provider/quality choice here on purpose, this feature exists
     specifically to be the cheap, quick "small adjustment" path.
+
+    `reference_images` (optional, up to 3 from the UI, but not enforced
+    here): extra photos — a logo, an object, or a background — the model
+    can pull specific elements from while `image` stays the literal edit
+    canvas. Omit them entirely and this behaves exactly as before.
     """
     if not OPENAI_API_KEY:
         raise HTTPException(500, detail="OPENAI_API_KEY is not set on the server.")
@@ -1149,14 +1181,42 @@ async def edit_photo(
     if not img_bytes:
         raise HTTPException(400, detail="Photo is empty or missing.")
 
+    ref_pairs = []
+    for ref in reference_images or []:
+        if not ref or not ref.filename:
+            continue
+        ref_bytes = await ref.read()
+        if ref_bytes:
+            ref_pairs.append((ref_bytes, ref.content_type or "image/jpeg"))
+
+    # images.edit gets one text prompt for the whole call — there's no way to
+    # caption each image individually the way the Responses API allows — so
+    # when references are attached, the instructions for how to use them
+    # have to be woven into the prompt text itself, ahead of the user's own
+    # instruction.
+    edit_prompt = prompt.strip()
+    if ref_pairs:
+        count_word = "an extra reference photo" if len(ref_pairs) == 1 else f"{len(ref_pairs)} extra reference photos"
+        edit_prompt = (
+            f"You've also been given {count_word} after the base photo. Use "
+            "them ONLY as a source for a specific object, logo, brand, or "
+            "background style to bring into the edit — do not change the "
+            "base photo's main subject, pose, or composition unless the "
+            "instruction below explicitly asks for that.\n\n"
+            f"Instruction: {edit_prompt}"
+        )
+
     try:
-        result_bytes = openai_edit_photo(prompt.strip(), img_bytes, image.content_type or "image/jpeg")
+        result_bytes = openai_edit_photo(
+            edit_prompt, img_bytes, image.content_type or "image/jpeg",
+            reference_images=ref_pairs,
+        )
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 
     label = prompt.strip()[:60]
     image_b64 = base64.b64encode(result_bytes).decode()
-    log_generation(request, source="edit-photo", label=label, prompt=prompt.strip(), image_b64=image_b64,
+    log_generation(request, source="edit-photo", label=label, prompt=edit_prompt, image_b64=image_b64,
                     provider="openai", quality="low")
     return {
         "success": True,
@@ -1165,7 +1225,7 @@ async def edit_photo(
         "format": "png",
         "provider_used": "openai",
         "quality_used": "low",
-        "prompt_used": prompt.strip(),
+        "prompt_used": edit_prompt,
         "label":  label,
     }
 

@@ -23,6 +23,16 @@ export default function EditPhoto() {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  // Optional reference photos (a logo, object, or background) the model can
+  // pull specific elements from while still treating `photo` as the literal
+  // edit canvas. Hidden behind a checkbox since most edits don't need them.
+  const [useReferences, setUseReferences] = useState(false)
+  const [refImages, setRefImages] = useState([null, null, null])   // up to 3, each { file, preview } | null
+
+  function setRefImageAt(i, value) {
+    setRefImages(prev => prev.map((v, idx) => (idx === i ? value : v)))
+  }
+
   // Pre-fill from a History item when opened via "Edit Photo" there. Runs
   // once on mount — History.jsx sets editPhotoRequest then navigates here.
   useEffect(() => {
@@ -42,6 +52,9 @@ export default function EditPhoto() {
     const fd = new FormData()
     fd.append('prompt', instruction.trim())
     fd.append('image', photo.file)
+    if (useReferences) {
+      refImages.forEach(ref => { if (ref?.file) fd.append('reference_images', ref.file) })
+    }
 
     try {
       const res  = await fetch('/api/edit-photo', { method: 'POST', body: fd })
@@ -94,6 +107,8 @@ export default function EditPhoto() {
     setPhoto(null)
     setInstruction('')
     setResult(null)
+    setUseReferences(false)
+    setRefImages([null, null, null])
   }
 
   return (
@@ -125,6 +140,52 @@ export default function EditPhoto() {
               onSelect={setPhoto}
               minHeight={150}
             />
+
+            <div style={{ marginTop: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={useReferences}
+                  onChange={e => setUseReferences(e.target.checked)}
+                />
+                <span className="form-label" style={{ margin: 0 }}>Add reference images</span>
+              </label>
+            </div>
+
+            {useReferences && (
+              <div className="form-grid-3" style={{ marginTop: 14 }}>
+                <UploadBox
+                  label="Reference 1"
+                  hint="A logo, object, or background to bring in"
+                  icon="🖇️"
+                  image={refImages[0]}
+                  onSelect={img => setRefImageAt(0, img)}
+                  required={false}
+                  minHeight={130}
+                  previewMaxHeight={130}
+                />
+                <UploadBox
+                  label="Reference 2"
+                  hint="Optional — another element to bring in"
+                  icon="🖇️"
+                  image={refImages[1]}
+                  onSelect={img => setRefImageAt(1, img)}
+                  required={false}
+                  minHeight={130}
+                  previewMaxHeight={130}
+                />
+                <UploadBox
+                  label="Reference 3"
+                  hint="Optional — a third element, if needed"
+                  icon="🖇️"
+                  image={refImages[2]}
+                  onSelect={img => setRefImageAt(2, img)}
+                  required={false}
+                  minHeight={130}
+                  previewMaxHeight={130}
+                />
+              </div>
+            )}
           </div>
 
           <div className="card">
