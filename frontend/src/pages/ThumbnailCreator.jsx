@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useHistory } from '../App.jsx'
+import { useToast } from '../Toast.jsx'
 
 // Locked pending further rollout — see the "AI Provider" card and "Image
 // Quality" row below for where these are enforced in the UI.
@@ -125,6 +126,7 @@ QUALITY: Ultra realistic Commercial photography Premium advertising quality Shar
 
 export default function ThumbnailCreator() {
   const { addToHistory } = useHistory()
+  const { showToast } = useToast()
 
   const [bgImage, setBgImage]     = useState(null)   // { file, preview } — campaign background
   const [baseImage, setBaseImage] = useState(null)   // { file, preview } — talent photo
@@ -134,7 +136,6 @@ export default function ThumbnailCreator() {
   const [activePresetId, setActivePresetId] = useState(null)
   const [result, setResult]       = useState(null)
   const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState('')
   const [showPrompt, setShowPrompt] = useState(false)
   // Default provider is OpenAI at Low quality with enrichment off — the
   // lowest-cost combination — since Gemini and High quality are locked below
@@ -146,10 +147,9 @@ export default function ThumbnailCreator() {
 
   function handleApplyPreset(preset) {
     if (!headline.trim()) {
-      setError('Please type the Headline first, then apply a brand preset.')
+      showToast('Please type the Headline first, then apply a brand preset.')
       return
     }
-    setError('')
     const tpl = preset.templates[provider] || preset.templates.gemini
     const filled = tpl.replace('{{HEADLINE}}', headline.trim())
     setPresetPrompt(filled)
@@ -162,10 +162,9 @@ export default function ThumbnailCreator() {
   }
 
   async function handleGenerate() {
-    if (!baseImage?.file) { setError('Please upload the Subject / Product Reference photo.'); return }
-    if (!bgImage?.file)  { setError('Please upload the Mood & Style Reference photo.'); return }
-    if (!headline.trim()) { setError('Please enter the Headline text.'); return }
-    setError('')
+    if (!baseImage?.file) { showToast('Please upload the Subject / Product Reference photo.'); return }
+    if (!bgImage?.file)  { showToast('Please upload the Mood & Style Reference photo.'); return }
+    if (!headline.trim()) { showToast('Please enter the Headline text.'); return }
     setLoading(true)
     setResult(null)
     setShowPrompt(false)
@@ -205,7 +204,7 @@ export default function ThumbnailCreator() {
       setResult(item)
       addToHistory(item)
     } catch (err) {
-      setError(err.message)
+      showToast(err.message)
     } finally {
       setLoading(false)
     }
@@ -227,7 +226,6 @@ export default function ThumbnailCreator() {
     setPresetPrompt('')
     setActivePresetId(null)
     setResult(null)
-    setError('')
   }
 
   return (
@@ -240,12 +238,6 @@ export default function ThumbnailCreator() {
           and get a ready-to-use 1080×1440 thumbnail.
         </div>
       </div>
-
-      {error && (
-        <div className="error-banner">
-          <span>⚠️</span><span>{error}</span>
-        </div>
-      )}
 
       <div className="two-col">
         {/* LEFT — Inputs */}
@@ -474,10 +466,13 @@ export default function ThumbnailCreator() {
 
           <div className="result-image-wrap" style={{ minHeight: 420 }}>
             {loading ? (
-              <div className="result-placeholder">
-                <div className="spinner" style={{ width: 36, height: 36 }} />
-                <p>Compositing your thumbnail…<br />
-                  <span style={{ fontSize: 11, opacity: 0.6 }}>This usually takes 10–30 seconds</span></p>
+              <div className="result-placeholder" style={{ width: '100%' }}>
+                <div className="skeleton" style={{ aspectRatio: '3 / 4', maxWidth: 320, margin: '0 auto' }} />
+                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                  <div className="spinner" style={{ width: 32, height: 32 }} />
+                  <p style={{ textAlign: 'center' }}>Compositing your thumbnail…<br />
+                    <span style={{ fontSize: 11, opacity: 0.6 }}>This usually takes 10–30 seconds</span></p>
+                </div>
               </div>
             ) : result ? (
               <img src={`data:image/png;base64,${result.image}`} alt={result.label} className="result-image" />

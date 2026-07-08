@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import Sidebar from './Sidebar.jsx'
+import { ToastProvider } from './Toast.jsx'
 import Login from './pages/Login.jsx'
 import BackgroundCreator from './pages/BackgroundCreator.jsx'
 import QuickGenerate from './pages/QuickGenerate.jsx'
@@ -77,30 +78,36 @@ export default function App() {
     setEditPhotoRequest(null)
   }
 
-  if (!authChecked) {
-    return <div className="app-shell" />   // brief blank frame while /api/me resolves
-  }
+  let content
 
-  if (!authDisabled && !currentUser) {
-    return (
+  if (!authChecked) {
+    content = <div className="app-shell" />   // brief blank frame while /api/me resolves
+  } else if (!authDisabled && !currentUser) {
+    content = (
       <AuthContext.Provider value={{ currentUser, logout }}>
         <Login onLoggedIn={user => setCurrentUser(user)} />
       </AuthContext.Provider>
     )
+  } else {
+    const PageComponent = PAGES[page] || ThumbnailCreator
+    content = (
+      <AuthContext.Provider value={{ currentUser, logout }}>
+        <HistoryContext.Provider value={{ history, addToHistory, editPhotoRequest, openEditPhoto, clearEditPhotoRequest }}>
+          <div className="app-shell">
+            <Sidebar activePage={page} onNavigate={setPage} historyCount={history.length} />
+            <main className="main-content">
+              {/* key={page} + .page-transition gives every page a fresh
+                  fade/slide-in on navigation, since swapping `page` already
+                  remounts a brand-new component instance. */}
+              <div className="page-transition" key={page}>
+                <PageComponent />
+              </div>
+            </main>
+          </div>
+        </HistoryContext.Provider>
+      </AuthContext.Provider>
+    )
   }
 
-  const PageComponent = PAGES[page] || ThumbnailCreator
-
-  return (
-    <AuthContext.Provider value={{ currentUser, logout }}>
-      <HistoryContext.Provider value={{ history, addToHistory, editPhotoRequest, openEditPhoto, clearEditPhotoRequest }}>
-        <div className="app-shell">
-          <Sidebar activePage={page} onNavigate={setPage} historyCount={history.length} />
-          <main className="main-content">
-            <PageComponent />
-          </main>
-        </div>
-      </HistoryContext.Provider>
-    </AuthContext.Provider>
-  )
+  return <ToastProvider>{content}</ToastProvider>
 }

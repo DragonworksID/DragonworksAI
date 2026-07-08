@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useHistory } from '../App.jsx'
+import { useToast } from '../Toast.jsx'
 
 // Converts a base64 PNG (as stored in History) into a File object so it can
 // be re-uploaded through the same form-data flow as a fresh upload.
@@ -14,12 +15,12 @@ function base64ToFile(b64, filename) {
 
 export default function EditPhoto() {
   const { addToHistory, editPhotoRequest, clearEditPhotoRequest } = useHistory()
+  const { showToast } = useToast()
 
   const [photo, setPhoto]   = useState(null)   // { file, preview }
   const [instruction, setInstruction] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError]   = useState('')
 
   // Pre-fill from a History item when opened via "Edit Photo" there. Runs
   // once on mount — History.jsx sets editPhotoRequest then navigates here.
@@ -39,9 +40,8 @@ export default function EditPhoto() {
   }
 
   async function handleEdit() {
-    if (!photo?.file) { setError('Please upload a photo to edit.'); return }
-    if (!instruction.trim()) { setError('Please describe the edit you want.'); return }
-    setError('')
+    if (!photo?.file) { showToast('Please upload a photo to edit.'); return }
+    if (!instruction.trim()) { showToast('Please describe the edit you want.'); return }
     setLoading(true)
     setResult(null)
 
@@ -63,11 +63,16 @@ export default function EditPhoto() {
         quality:  'low',
         ratio:  'Original',
         ts:     new Date().toLocaleTimeString(),
+        // The exact "before" photo used for this specific edit, captured at
+        // generation time — so the before/after slider stays correct even
+        // after "Edit again" replaces the current `photo` state with a newer
+        // source image.
+        sourceImage: photo.preview,
       }
       setResult(item)
       addToHistory(item)
     } catch (err) {
-      setError(err.message)
+      showToast(err.message)
     } finally {
       setLoading(false)
     }
@@ -95,7 +100,6 @@ export default function EditPhoto() {
     setPhoto(null)
     setInstruction('')
     setResult(null)
-    setError('')
   }
 
   return (
@@ -110,12 +114,6 @@ export default function EditPhoto() {
           rather than full recompositions.
         </div>
       </div>
-
-      {error && (
-        <div className="error-banner">
-          <span>⚠️</span><span>{error}</span>
-        </div>
-      )}
 
       <div className="two-col">
         {/* LEFT — Inputs */}
@@ -193,13 +191,20 @@ export default function EditPhoto() {
 
           <div className="result-image-wrap" style={{ minHeight: 420 }}>
             {loading ? (
-              <div className="result-placeholder">
-                <div className="spinner" style={{ width: 36, height: 36 }} />
-                <p>Applying your edit…<br />
-                  <span style={{ fontSize: 11, opacity: 0.6 }}>This usually takes 10–30 seconds</span></p>
+              <div className="result-placeholder" style={{ width: '100%' }}>
+                <div className="skeleton" style={{ aspectRatio: '4 / 3', maxWidth: 380, margin: '0 auto' }} />
+                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                  <div className="spinner" style={{ width: 32, height: 32 }} />
+                  <p style={{ textAlign: 'center' }}>Applying your edit…<br />
+                    <span style={{ fontSize: 11, opacity: 0.6 }}>This usually takes 10–30 seconds</span></p>
+                </div>
               </div>
             ) : result ? (
-              <img src={`data:image/png;base64,${result.image}`} alt={result.label} className="result-image" />
+              result.sourceImage ? (
+                <BeforeAfterSlider before={result.sourceImage} after={`data:image/png;base64,${result.image}`} />
+              ) : (
+                <img src={`data:image/png;base64,${result.image}`} alt={result.label} className="result-image" />
+              )
             ) : (
               <div className="result-placeholder">
                 <div className="result-placeholder-icon">✏️</div>
@@ -209,6 +214,58 @@ export default function EditPhoto() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Draggable before/after comparison — drag anywhere on the image (or drag
+// the handle) to reveal more of the original vs. the edited version. Built
+// with plain pointer events rather than a library since the interaction is
+// simple: track a 0-100 position, clip the "after" layer to that width.
+function BeforeAfterSlider({ before, after }) {
+  const [pos, setPos] = useState(50)
+  const containerRef = useRef(null)
+  const draggingRef = useRef(false)
+
+  function updateFromClientX(clientX) {
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const pct = ((clientX - rect.left) / rect.width) * 100
+    setPos(Math.min(100, Math.max(0, pct)))
+  }
+
+  function handlePointerDown(e) {
+    draggingRef.current = true
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    updateFromClientX(e.clientX)
+  }
+  function handlePointerMove(e) {
+    if (!draggingRef.current) return
+    updateFromClientX(e.clientX)
+  }
+  function handlePointerUp() {
+    draggingRef.current = false
+  }
+
+  return (
+    <div
+      className="ba-slider"
+      ref={containerRef}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
+      <img src={before} alt="Before" className="ba-slider-before" draggable={false} />
+      <div className="ba-slider-after-wrap" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
+        <img src={after} alt="After" draggable={false} />
+      </div>
+      <div className="ba-slider-handle" style={{ left: `${pos}%` }}>
+        <div className="ba-slider-handle-grip">⇔</div>
+      </div>
+      <div className="ba-slider-label ba-slider-label-left">Before</div>
+      <div className="ba-slider-label ba-slider-label-right">After</div>
     </div>
   )
 }

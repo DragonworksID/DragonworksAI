@@ -19,7 +19,10 @@
   --gradient:     linear-gradient(135deg, #7c3aed 0%, #e879f9 100%);
   --text:         #f0f0ff;
   --text-muted:   #8892a4;
-  --text-dim:     #555a7a;
+  /* Lightened from #555a7a — that shade sat at ~2.85:1 contrast against
+     --bg-main/--bg-card, below the 4.5:1 WCAG AA threshold for normal-size
+     text. This shade clears ~5:1 on both. */
+  --text-dim:     #7880ab;
   --success:      #34d399;
   --danger:       #f87171;
   --warning:      #fbbf24;
@@ -200,9 +203,30 @@ html, body, #root {
 .account-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
   color: var(--text);
+}
+
+.account-avatar {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0;
+}
+
+.account-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-version-card {
@@ -643,10 +667,25 @@ html, body, #root {
   transform: translateY(-2px);
 }
 
-.history-card img {
+/* Fixed-height, letterboxed frame for every history-style card — used
+   instead of a forced 9:16 cover-crop so images of any aspect ratio (a
+   portrait Thumbnail Creator output, an arbitrary-ratio Edit Photo result)
+   sit fully visible instead of getting clipped. */
+.history-card-image-wrap {
+  position: relative;
   width: 100%;
-  aspect-ratio: 9/16;
-  object-fit: cover;
+  height: 200px;
+  background: var(--bg-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.history-card-image-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   display: block;
 }
 
@@ -767,8 +806,9 @@ html, body, #root {
 }
 
 .login-logo .logo-icon {
-  font-size: 28px;
-  margin-bottom: 6px;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 10px;
 }
 
 .login-title {
@@ -785,3 +825,142 @@ html, body, #root {
   color: var(--text-dim);
   text-align: center;
 }
+
+/* ── Page transition ─────────────────────────── */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-transition {
+  animation: pageFadeIn 0.22s ease;
+}
+
+/* ── Skeleton loading shimmer ─────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 37%, var(--bg-card) 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* ── Toast notifications ──────────────────────── */
+.toast-stack {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000;
+  max-width: 340px;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.toast {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  animation: toastIn 0.2s ease;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.toast-error   { border-color: rgba(248, 113, 113, 0.4); }
+.toast-error span:last-child   { color: var(--danger); }
+.toast-success { border-color: rgba(52, 211, 153, 0.4); }
+.toast-success span:last-child { color: var(--success); }
+.toast-info    { border-color: var(--border-focus); }
+.toast-info span:last-child    { color: var(--accent-light); }
+
+/* ── Before/after comparison slider (Edit Photo) ─ */
+.ba-slider {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.ba-slider-before {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+}
+
+.ba-slider-after-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.ba-slider-after-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ba-slider-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: white;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ba-slider-handle-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  color: var(--bg-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+.ba-slider-label {
+  position: absolute;
+  top: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  pointer-events: none;
+}
+
+.ba-slider-label-left  { left: 10px; }
+.ba-slider-label-right { right: 10px; }

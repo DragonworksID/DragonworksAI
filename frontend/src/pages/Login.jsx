@@ -1,15 +1,16 @@
 import { useState } from 'react'
+import { useToast } from '../Toast.jsx'
+import Logomark from '../Logomark.jsx'
 
 export default function Login({ onLoggedIn }) {
+  const { showToast } = useToast()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!username.trim() || !password) { setError('Please enter your username and password.'); return }
-    setError('')
+    if (!username.trim() || !password) { showToast('Please enter your username and password.'); return }
     setLoading(true)
     try {
       const res  = await fetch('/api/login', {
@@ -21,7 +22,7 @@ export default function Login({ onLoggedIn }) {
       if (!res.ok) throw new Error(data.detail || 'Login failed')
       onLoggedIn({ username: data.username, role: data.role })
     } catch (err) {
-      setError(err.message)
+      showToast(err.message)
     } finally {
       setLoading(false)
     }
@@ -31,18 +32,12 @@ export default function Login({ onLoggedIn }) {
     <div className="login-screen">
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="login-logo">
-          <div className="logo-icon">✦</div>
+          <div className="logo-icon"><Logomark size={22} /></div>
           <div className="logo-name">Dragonworks <span>Studio</span></div>
           <div className="logo-tagline">Dragonworks AI Dept.</div>
         </div>
 
         <div className="login-title">Sign in</div>
-
-        {error && (
-          <div className="error-banner" style={{ marginBottom: 14 }}>
-            <span>⚠️</span><span>{error}</span>
-          </div>
-        )}
 
         <div className="form-group full" style={{ marginBottom: 14 }}>
           <label className="form-label">Username</label>

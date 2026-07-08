@@ -1,4 +1,21 @@
 import { useAuth } from './App.jsx'
+import Logomark from './Logomark.jsx'
+
+// Deterministic initials + color for the account avatar — same username
+// always produces the same look, no state or storage needed.
+function initialsFor(name) {
+  if (!name) return '?'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[1][0]).toUpperCase()
+}
+
+function colorFor(name) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue}, 60%, 50%)`
+}
 
 export default function Sidebar({ activePage, onNavigate, historyCount }) {
   const auth = useAuth()
@@ -9,7 +26,7 @@ export default function Sidebar({ activePage, onNavigate, historyCount }) {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="logo-icon">✦</div>
+        <div className="logo-icon"><Logomark /></div>
         <div className="logo-name">Dragonworks <span>Studio</span></div>
         <div className="logo-tagline">Dragonworks AI Dept.</div>
       </div>
@@ -77,7 +94,10 @@ export default function Sidebar({ activePage, onNavigate, historyCount }) {
         {currentUser && (
           <div className="account-card">
             <div className="account-row">
-              <span>👤 {currentUser.username}</span>
+              <span className="account-avatar" style={{ background: colorFor(currentUser.username) }}>
+                {initialsFor(currentUser.username)}
+              </span>
+              <span className="account-name">{currentUser.username}</span>
               {isAdmin && <span className="badge badge-new">ADMIN</span>}
             </div>
             <button className="btn-secondary" style={{ width: '100%', marginTop: 8 }} onClick={() => auth.logout()}>

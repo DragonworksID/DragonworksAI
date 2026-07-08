@@ -59,11 +59,12 @@ export default function AdminHistory() {
           <div className="history-grid">
             {entries.map((item, i) => (
               <div className="history-card" key={`${item.username}-${item.ts}-${i}`}>
-                <img
-                  src={`data:image/png;base64,${item.image}`}
-                  alt={item.label}
-                  style={{ width: '100%', objectFit: 'cover', display: 'block' }}
-                />
+                <div className="history-card-image-wrap">
+                  <img
+                    src={`data:image/png;base64,${item.image}`}
+                    alt={item.label}
+                  />
+                </div>
                 <div className="history-card-info">
                   <div className="history-card-label">{item.label}</div>
                   <div className="history-card-meta">
