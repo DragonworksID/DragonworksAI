@@ -117,10 +117,6 @@ export default function EditPhoto() {
               <span className="step-badge">1</span>
               Photo to Edit
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 10 }}>
-              This is the actual photo that gets edited — not a creative reference. The edit is
-              applied directly on top of it.
-            </div>
             <UploadBox
               label="Photo"
               hint="The exact image you want adjusted"
@@ -145,10 +141,6 @@ export default function EditPhoto() {
                 onChange={e => setInstruction(e.target.value)}
                 rows={4}
               />
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 6 }}>
-              🔒 Provider: OpenAI (GPT Image 2) · Quality: Low — fixed for this section to keep
-              costs minimal.
             </div>
           </div>
 

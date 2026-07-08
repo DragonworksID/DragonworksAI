@@ -498,9 +498,6 @@ export default function ThumbnailCreator() {
         <div>
           <div className="card">
             <div className="card-title">AI Provider</div>
-            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 10 }}>
-              OpenAI (GPT Image 2) is the active provider. Gemini is temporarily locked to control spend.
-            </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 className="btn-secondary"
@@ -511,29 +508,19 @@ export default function ThumbnailCreator() {
                   : (provider === 'gemini' ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined)}
                 onClick={() => !GEMINI_LOCKED && setProvider('gemini')}
               >
-                {GEMINI_LOCKED ? '🔒 ' : provider === 'gemini' ? '✓ ' : ''}Gemini (Nano Banana Pro) — Locked
+                {GEMINI_LOCKED ? '🔒 ' : provider === 'gemini' ? '✓ ' : ''}Gemini
               </button>
               <button
                 className="btn-secondary"
                 style={provider === 'openai' ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
                 onClick={() => setProvider('openai')}
               >
-                {provider === 'openai' ? '✓ ' : ''}OpenAI (GPT Image 2) — costs below are estimates only
+                {provider === 'openai' ? '✓ ' : ''}OpenAI
               </button>
             </div>
 
             {provider === 'openai' && (
               <div style={{ marginTop: 12 }}>
-                <div className="error-banner" style={{ fontSize: 11, marginBottom: 10 }}>
-                  <span>⚠️</span>
-                  <span>
-                    These per-image costs are NOT flat/guaranteed. Generation now runs through
-                    OpenAI's Responses API, which bills your reference photos as extra input tokens
-                    plus orchestration tokens on top of the image render — actual cost can run
-                    noticeably higher than shown here. Check your OpenAI usage dashboard for real
-                    spend; check <code>/api/health</code> for which call path is active.
-                  </span>
-                </div>
                 <div className="form-label" style={{ marginBottom: 6 }}>Image Quality</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
@@ -554,10 +541,6 @@ export default function ThumbnailCreator() {
                       {q.locked ? '🔒 ' : quality === q.key ? '✓ ' : ''}{q.label} <span style={{ opacity: 0.6, fontSize: 10 }}>{q.cost}</span>
                     </button>
                   ))}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 8 }}>
-                  Low is the default to keep costs minimal. Medium is available for when quality needs
-                  a bump — High is temporarily locked.
                 </div>
 
                 <div style={{ marginTop: 14 }}>
@@ -583,11 +566,6 @@ export default function ThumbnailCreator() {
             <div className="card-title">
               <span className="step-badge">1</span>
               Reference Images
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 10 }}>
-              Both photos are creative references, not pieces to literally paste together — the AI
-              invents a brand-new photograph inspired by them, keeping the subject/product recognizable
-              and borrowing the mood/colors/style cues from the other.
             </div>
             <div className="form-grid">
               <UploadBox
