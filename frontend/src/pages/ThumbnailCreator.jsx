@@ -123,6 +123,259 @@ LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natur
 QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
     },
   },
+  // ── Universal presets ──────────────────────────────────────
+  // Not tied to a specific brand — pick by WHAT'S in the photo (talent only,
+  // product only, or both), for any campaign theme. Unlike the Lenovo presets
+  // above, these don't have a separately-engineered Gemini scaffold yet — the
+  // same brief is used for both providers below. If Gemini gets unlocked and
+  // these need Nano-Banana-specific guardrails, split `gemini` out like the
+  // Lenovo presets do.
+  {
+    id: 'universal-s',
+    brand: 'Universal-S',
+    templates: {
+      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail.
+INPUTS: Cover photo subject + Background reference image (replace the subject's background with the background reference image)
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference, replace the subject's current background with the uploaded background reference and make it natural.
+Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
+Background characteristics: Create a natural look ensuring the talent's face is clear and bright.
+Add: Subtle depth of field Light bokeh particles Soft ambient glow
+SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect,  No cartoon effect
+Enhance: Natural lighting Subject visibility Sharpness Contrast Product
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Premium viral Indonesian social media typography.
+Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
+Friendly, youthful, highly readable on mobile screens.
+Mixed font weights:
+- Main keywords ultra bold
+- Supporting words medium weight
+Text layout optimized for fast scanning within 1 second.
+Thick white stroke outline (8-12px)
+Soft dark drop shadow
+Slight 3D depth
+High contrast against background
+Important keywords highlighted using bright accent colors.
+Typography should feel:
+- modern
+- casual
+- relatable
+- energetic
+- social-media native
+Text spacing balanced and professional.
+Indonesian viral content style.
+CTR-optimized thumbnail typography.
+Premium advertising quality.
+Visual hierarchy: Subject Headline Background
+Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
+QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
+      openai: `You are a professional advertising designer creating a premium TikTok thumbnail.
+INPUTS: Cover photo subject + Background reference image (replace the subject's background with the background reference image)
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference, replace the subject's current background with the uploaded background reference and make it natural.
+Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
+Background characteristics: Create a natural look ensuring the talent's face is clear and bright.
+Add: Subtle depth of field Light bokeh particles Soft ambient glow
+SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect,  No cartoon effect
+Enhance: Natural lighting Subject visibility Sharpness Contrast Product
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Premium viral Indonesian social media typography.
+Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
+Friendly, youthful, highly readable on mobile screens.
+Mixed font weights:
+- Main keywords ultra bold
+- Supporting words medium weight
+Text layout optimized for fast scanning within 1 second.
+Thick white stroke outline (8-12px)
+Soft dark drop shadow
+Slight 3D depth
+High contrast against background
+Important keywords highlighted using bright accent colors.
+Typography should feel:
+- modern
+- casual
+- relatable
+- energetic
+- social-media native
+Text spacing balanced and professional.
+Indonesian viral content style.
+CTR-optimized thumbnail typography.
+Premium advertising quality.
+Visual hierarchy: Subject Headline Background
+Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
+QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
+    },
+  },
+  {
+    id: 'universal-p',
+    brand: 'Universal-P',
+    templates: {
+      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail.
+INPUTS: Cover photo product + Background reference image (replace the product's background with the background reference image)
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference, replace the product's current background with the uploaded background reference and make it natural.
+Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
+Background characteristics: Create a natural look; add a raised, colorful effect beside or behind the product without obscuring any part of it.
+Add: Subtle depth of field Light bokeh particles Soft ambient glow
+SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
+IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
+Enhance: Natural lighting Product visibility Sharpness Contrast
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Premium viral Indonesian social media typography.
+Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
+Friendly, youthful, highly readable on mobile screens.
+Mixed font weights:
+- Main keywords ultra bold
+- Supporting words medium weight
+Text layout optimized for fast scanning within 1 second.
+Thick white stroke outline (8-12px)
+Soft dark drop shadow
+Slight 3D depth
+High contrast against background
+Important keywords highlighted using bright accent colors.
+Typography should feel:
+- modern
+- casual
+- relatable
+- energetic
+- social-media native
+Text spacing balanced and professional.
+Indonesian viral content style.
+CTR-optimized thumbnail typography.
+Premium advertising quality.
+Visual hierarchy: Product Headline Background
+Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
+QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
+      openai: `You are a professional advertising designer creating a premium TikTok thumbnail.
+INPUTS: Cover photo product + Background reference image (replace the product's background with the background reference image)
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference, replace the product's current background with the uploaded background reference and make it natural.
+Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
+Background characteristics: Create a natural look; add a raised, colorful effect beside or behind the product without obscuring any part of it.
+Add: Subtle depth of field Light bokeh particles Soft ambient glow
+SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
+IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
+Enhance: Natural lighting Product visibility Sharpness Contrast
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Premium viral Indonesian social media typography.
+Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
+Friendly, youthful, highly readable on mobile screens.
+Mixed font weights:
+- Main keywords ultra bold
+- Supporting words medium weight
+Text layout optimized for fast scanning within 1 second.
+Thick white stroke outline (8-12px)
+Soft dark drop shadow
+Slight 3D depth
+High contrast against background
+Important keywords highlighted using bright accent colors.
+Typography should feel:
+- modern
+- casual
+- relatable
+- energetic
+- social-media native
+Text spacing balanced and professional.
+Indonesian viral content style.
+CTR-optimized thumbnail typography.
+Premium advertising quality.
+Visual hierarchy: Product Headline Background
+Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
+QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
+    },
+  },
+  {
+    id: 'universal-sp',
+    brand: 'Universal-SP',
+    templates: {
+      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail.
+INPUTS: Cover photo subject + product + Background reference image (replace the background with the background reference image)
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference, replace the current background with the uploaded background reference and make it natural.
+Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
+Background characteristics: Create a natural look ensuring the talent's face is clear and bright.
+Add: Subtle depth of field Light bokeh particles Soft ambient glow
+SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
+Enhance: Natural lighting Subject visibility Product visibility Sharpness Contrast
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Premium viral Indonesian social media typography.
+Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
+Friendly, youthful, highly readable on mobile screens.
+Mixed font weights:
+- Main keywords ultra bold
+- Supporting words medium weight
+Text layout optimized for fast scanning within 1 second.
+Thick white stroke outline (8-12px)
+Soft dark drop shadow
+Slight 3D depth
+High contrast against background
+Important keywords highlighted using bright accent colors.
+Typography should feel:
+- modern
+- casual
+- relatable
+- energetic
+- social-media native
+Text spacing balanced and professional.
+Indonesian viral content style.
+CTR-optimized thumbnail typography.
+Premium advertising quality.
+Visual hierarchy: Subject Product Headline Background
+Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
+QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
+      openai: `You are a professional advertising designer creating a premium TikTok thumbnail.
+INPUTS: Cover photo subject + product + Background reference image (replace the background with the background reference image)
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference, replace the current background with the uploaded background reference and make it natural.
+Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
+Background characteristics: Create a natural look ensuring the talent's face is clear and bright.
+Add: Subtle depth of field Light bokeh particles Soft ambient glow
+SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
+Enhance: Natural lighting Subject visibility Product visibility Sharpness Contrast
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Premium viral Indonesian social media typography.
+Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
+Friendly, youthful, highly readable on mobile screens.
+Mixed font weights:
+- Main keywords ultra bold
+- Supporting words medium weight
+Text layout optimized for fast scanning within 1 second.
+Thick white stroke outline (8-12px)
+Soft dark drop shadow
+Slight 3D depth
+High contrast against background
+Important keywords highlighted using bright accent colors.
+Typography should feel:
+- modern
+- casual
+- relatable
+- energetic
+- social-media native
+Text spacing balanced and professional.
+Indonesian viral content style.
+CTR-optimized thumbnail typography.
+Premium advertising quality.
+Visual hierarchy: Subject Product Headline Background
+Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
+QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
+    },
+  },
 ]
 
 export default function ThumbnailCreator() {
