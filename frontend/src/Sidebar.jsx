@@ -1,4 +1,10 @@
+import { useAuth } from './App.jsx'
+
 export default function Sidebar({ activePage, onNavigate, historyCount }) {
+  const auth = useAuth()
+  const currentUser = auth?.currentUser
+  const isAdmin = currentUser?.role === 'admin'
+
   return (
     <aside className="sidebar">
       {/* Logo */}
@@ -51,10 +57,34 @@ export default function Sidebar({ activePage, onNavigate, historyCount }) {
         />
       </div>
 
+      {/* Admin — only visible to accounts with role "admin" */}
+      {isAdmin && (
+        <div className="sidebar-section">
+          <div className="sidebar-section-label">Admin</div>
+          <NavItem
+            icon="🛡️"
+            label="All Users' History"
+            active={activePage === 'adminhistory'}
+            onClick={() => onNavigate('adminhistory')}
+          />
+        </div>
+      )}
+
       <div className="sidebar-spacer" />
 
-      {/* Footer — version info */}
+      {/* Footer — account + version info */}
       <div className="sidebar-footer">
+        {currentUser && (
+          <div className="account-card">
+            <div className="account-row">
+              <span>👤 {currentUser.username}</span>
+              {isAdmin && <span className="badge badge-new">ADMIN</span>}
+            </div>
+            <button className="btn-secondary" style={{ width: '100%', marginTop: 8 }} onClick={() => auth.logout()}>
+              ⎋ Log out
+            </button>
+          </div>
+        )}
         <div className="app-version-card">
           <div className="app-version-label">App Version</div>
           <div className="app-version-row">

@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 import os
 import base64
+import hmac
+import json
 import secrets
+import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
@@ -20,43 +25,200 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Shared-password gate ─────────────────────────────────────────────────
+# ── Named-account login gate ─────────────────────────────────────────────
 # This app calls paid Gemini/OpenAI APIs on every generation. Once deployed
 # to a public URL, anyone who has that link could otherwise generate images
-# on your account's bill. Set SITE_USERNAME + SITE_PASSWORD (e.g. in your
-# hosting provider's environment variable settings) to require a single
-# shared login before ANY page or API route responds. Leave either one
-# blank (the default) and this is skipped entirely — that's what keeps
-# local dev (`uvicorn main:app`) working with no login prompt.
-SITE_USERNAME = os.getenv("SITE_USERNAME", "")
-SITE_PASSWORD = os.getenv("SITE_PASSWORD", "")
+# on your account's bill — so every /api/* route (other than login/health)
+# requires a logged-in session.
+#
+# Accounts are configured via the APP_USERS environment variable — a JSON
+# array of {"username", "password", "role"} objects, e.g.:
+#   [{"username":"maria","password":"changeme1","role":"user"},
+#    {"username":"admin","password":"changeme2","role":"admin"}]
+# "role" is "user" (default) or "admin". Admin accounts can see every user's
+# generation history (who generated what) via /api/admin/history — regular
+# "user" accounts only see their own browser's history, same as today.
+#
+# Leave APP_USERS unset/empty and the whole gate is skipped — that's what
+# keeps local dev (`uvicorn main:app`) working with no login prompt.
+#
+# NOTE: sessions and the admin history log below are held in memory only
+# (no database) — both reset whenever the server restarts or redeploys,
+# same as the rest of this app's history. That keeps this free to run.
+APP_USERS_ENV     = os.getenv("APP_USERS", "")
+SESSION_COOKIE     = "dw_session"
+SESSION_MAX_AGE_S  = 60 * 60 * 24 * 14   # 14 days
+# Modern browsers treat http://localhost as secure enough for "Secure"
+# cookies, so this defaults on (matches Render's https in production). If a
+# local test ever shows the session not sticking (e.g. testing via
+# http://127.0.0.1 instead of http://localhost in an older browser), set
+# COOKIE_SECURE=0 in your local environment to work around it.
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "1") != "0"
 
 
-class BasicAuthMiddleware(BaseHTTPMiddleware):
+def _load_app_users():
+    raw = APP_USERS_ENV.strip()
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except Exception as e:
+        print(f"[auth] APP_USERS is set but isn't valid JSON ({e}) — login gate disabled.")
+        return []
+    users = []
+    for u in parsed if isinstance(parsed, list) else []:
+        if not isinstance(u, dict) or not u.get("username") or not u.get("password"):
+            continue
+        role = str(u.get("role", "user")).strip().lower()
+        users.append({
+            "username": str(u["username"]),
+            "password": str(u["password"]),
+            "role": role if role in ("user", "admin") else "user",
+        })
+    return users
+
+
+APP_USERS = _load_app_users()
+
+# token -> {"username", "role", "created"} — in-memory only, see note above.
+SESSIONS = {}
+
+
+def _find_user(username: str):
+    for u in APP_USERS:
+        if hmac.compare_digest(u["username"], username):
+            return u
+    return None
+
+
+def _create_session(user: dict) -> str:
+    token = secrets.token_urlsafe(32)
+    SESSIONS[token] = {"username": user["username"], "role": user["role"], "created": time.time()}
+    return token
+
+
+def _session_from_request(request: Request):
+    token = request.cookies.get(SESSION_COOKIE, "")
+    session = SESSIONS.get(token)
+    if not session:
+        return None
+    if time.time() - session["created"] > SESSION_MAX_AGE_S:
+        SESSIONS.pop(token, None)
+        return None
+    return session
+
+
+def current_username(request: Request) -> str:
+    """Best-effort attribution for the generation log — 'local-dev' when the
+    login gate is disabled (APP_USERS unset), otherwise the logged-in user."""
+    user = getattr(request.state, "user", None)
+    return user["username"] if user else "local-dev"
+
+
+# Reachable without a session: logging in, checking whether you're logged in,
+# and the health check (used by uptime monitors). Everything else under
+# /api/* requires a valid session cookie. Paths outside /api/* (the built
+# frontend bundle) are never touched by this middleware, so the React app's
+# own Login screen can always load in the browser.
+_PUBLIC_API_PATHS = {"/api/login", "/api/logout", "/api/me", "/api/health"}
+
+
+class SessionAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not SITE_USERNAME or not SITE_PASSWORD:
+        if not APP_USERS:
+            return await call_next(request)
+        if not request.url.path.startswith("/api/") or request.url.path in _PUBLIC_API_PATHS:
             return await call_next(request)
 
-        auth_header = request.headers.get("authorization", "")
-        if auth_header.startswith("Basic "):
-            try:
-                decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
-                username, _, password = decoded.partition(":")
-                # constant-time comparisons — avoids leaking correctness via timing
-                if secrets.compare_digest(username, SITE_USERNAME) and \
-                   secrets.compare_digest(password, SITE_PASSWORD):
-                    return await call_next(request)
-            except Exception:
-                pass
-
-        return Response(
-            status_code=401,
-            headers={"WWW-Authenticate": 'Basic realm="Dragonworks Studio"'},
-            content="Authentication required.",
-        )
+        session = _session_from_request(request)
+        if not session:
+            return Response(
+                status_code=401,
+                content=json.dumps({"detail": "Not authenticated"}),
+                media_type="application/json",
+            )
+        request.state.user = session
+        return await call_next(request)
 
 
-app.add_middleware(BasicAuthMiddleware)
+app.add_middleware(SessionAuthMiddleware)
+
+
+class LoginPayload(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/login")
+def login(payload: LoginPayload, response: Response):
+    if not APP_USERS:
+        raise HTTPException(400, detail="Login is not configured on this server (APP_USERS is unset).")
+    user = _find_user(payload.username)
+    if not user or not hmac.compare_digest(user["password"], payload.password):
+        raise HTTPException(401, detail="Invalid username or password.")
+    token = _create_session(user)
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+        max_age=SESSION_MAX_AGE_S,
+        path="/",
+    )
+    return {"success": True, "username": user["username"], "role": user["role"]}
+
+
+@app.post("/api/logout")
+def logout(request: Request, response: Response):
+    SESSIONS.pop(request.cookies.get(SESSION_COOKIE, ""), None)
+    response.delete_cookie(SESSION_COOKIE, path="/")
+    return {"success": True}
+
+
+@app.get("/api/me")
+def me(request: Request):
+    if not APP_USERS:
+        return {"authenticated": False, "auth_disabled": True}
+    session = _session_from_request(request)
+    if not session:
+        return {"authenticated": False}
+    return {"authenticated": True, "username": session["username"], "role": session["role"]}
+
+
+# ── Shared, in-memory generation log (for the admin view) ───────────────
+# Every successful generation across every user is appended here, tagged
+# with who made it, so an admin account can see "who generated what" via
+# /api/admin/history. Capped to the most recent 200 to bound memory use —
+# same in-memory-only, resets-on-restart tradeoff as the rest of this app's
+# history (see the login-gate note above for why that's the free option).
+GENERATION_LOG = []
+GENERATION_LOG_MAX = 200
+
+
+def log_generation(request: Request, *, source: str, label: str, prompt: str, image_b64: str,
+                   provider: str = None, quality: str = None):
+    GENERATION_LOG.insert(0, {
+        "username": current_username(request),
+        "source":   source,
+        "label":    label,
+        "prompt":   prompt,
+        "image":    image_b64,
+        "provider": provider,
+        "quality":  quality,
+        "ts":       datetime.now(timezone.utc).isoformat(),
+    })
+    del GENERATION_LOG[GENERATION_LOG_MAX:]
+
+
+@app.get("/api/admin/history")
+def admin_history(request: Request):
+    if not APP_USERS:
+        raise HTTPException(400, detail="Login is not configured on this server (APP_USERS is unset).")
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") != "admin":
+        raise HTTPException(403, detail="Admin access required.")
+    return {"success": True, "history": GENERATION_LOG}
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
@@ -754,6 +916,8 @@ def build_thumbnail_prompt(headline: str, notes: str) -> str:
 def health():
     return {
         "ok": True,
+        "auth_enabled": bool(APP_USERS),
+        "user_count": len(APP_USERS),
         "gemini_ready": bool(GEMINI_API_KEY),
         "openai_ready": bool(OPENAI_API_KEY),
         "default_provider": DEFAULT_IMAGE_PROVIDER,
@@ -774,6 +938,7 @@ def health():
 
 @app.post("/api/generate")
 async def generate_background(
+    request: Request,
     description:   str = Form(""),
     subject:       str = Form(""),
     object_field:  str = Form(""),
@@ -806,17 +971,21 @@ async def generate_background(
         img_bytes = gemini_generate(prompt, ref_bytes, ref_mime)
     except Exception as e:
         raise HTTPException(500, detail=str(e))
+    label = (description or subject or "Generated image")[:60]
+    image_b64 = base64.b64encode(img_bytes).decode()
+    log_generation(request, source="background", label=label, prompt=prompt, image_b64=image_b64, provider="gemini")
     return {
         "success": True,
         "id":     str(uuid.uuid4())[:8],
-        "image":  base64.b64encode(img_bytes).decode(),
+        "image":  image_b64,
         "format": "png",
-        "label":  (description or subject or "Generated image")[:60],
+        "label":  label,
     }
 
 
 @app.post("/api/thumbnail")
 async def generate_thumbnail(
+    request: Request,
     headline: str = Form(...),
     notes:    str = Form(""),
     custom_prompt: str = Form(""),
@@ -940,22 +1109,27 @@ async def generate_thumbnail(
             )
     except Exception as e:
         raise HTTPException(500, detail=str(e))
+    label = headline.strip()[:60]
+    image_b64 = base64.b64encode(img_bytes).decode()
+    log_generation(request, source="thumbnail", label=label, prompt=prompt, image_b64=image_b64,
+                    provider=provider, quality=quality if provider == "openai" else None)
     return {
         "success": True,
         "id":     str(uuid.uuid4())[:8],
-        "image":  base64.b64encode(img_bytes).decode(),
+        "image":  image_b64,
         "format": "png",
         "provider_used": provider,
         "quality_used": quality if provider == "openai" else None,
         "prompt_used": prompt,
         "enrichment_used": enrichment_used,
         "enrichment_error": enrichment_error,
-        "label":  headline.strip()[:60],
+        "label":  label,
     }
 
 
 @app.post("/api/edit-photo")
 async def edit_photo(
+    request: Request,
     prompt: str = Form(...),
     image:  UploadFile = File(...),
 ):
@@ -980,20 +1154,25 @@ async def edit_photo(
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 
+    label = prompt.strip()[:60]
+    image_b64 = base64.b64encode(result_bytes).decode()
+    log_generation(request, source="edit-photo", label=label, prompt=prompt.strip(), image_b64=image_b64,
+                    provider="openai", quality="low")
     return {
         "success": True,
         "id":     str(uuid.uuid4())[:8],
-        "image":  base64.b64encode(result_bytes).decode(),
+        "image":  image_b64,
         "format": "png",
         "provider_used": "openai",
         "quality_used": "low",
         "prompt_used": prompt.strip(),
-        "label":  prompt.strip()[:60],
+        "label":  label,
     }
 
 
 @app.post("/api/quick-generate")
 async def quick_generate(
+    request: Request,
     prompt: str = Form(...),
     reference_image: Optional[UploadFile] = File(None),
 ):
@@ -1014,12 +1193,15 @@ async def quick_generate(
         img_bytes = gemini_generate(full_prompt, ref_bytes, ref_mime)
     except Exception as e:
         raise HTTPException(500, detail=str(e))
+    label = prompt[:60]
+    image_b64 = base64.b64encode(img_bytes).decode()
+    log_generation(request, source="quick-generate", label=label, prompt=full_prompt, image_b64=image_b64, provider="gemini")
     return {
         "success": True,
         "id":     str(uuid.uuid4())[:8],
-        "image":  base64.b64encode(img_bytes).decode(),
+        "image":  image_b64,
         "format": "png",
-        "label":  prompt[:60],
+        "label":  label,
     }
 
 

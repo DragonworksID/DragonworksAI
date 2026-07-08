@@ -16,9 +16,12 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      # Shared login for the whole team — leave both blank in the dashboard
-      # ONLY if you're intentionally fine with the site being fully public.
-      - key: SITE_USERNAME
-        sync: false
-      - key: SITE_PASSWORD
+      # Named team accounts — set the actual JSON value in the Render
+      # dashboard (Environment tab), NOT here. Leave blank ONLY if you're
+      # intentionally fine with the site being fully public with no login.
+      # Format: a JSON array of {"username","password","role"} objects,
+      # role is "user" or "admin", e.g.:
+      #   [{"username":"maria","password":"changeme1","role":"user"},
+      #    {"username":"admin","password":"changeme2","role":"admin"}]
+      - key: APP_USERS
         sync: false
