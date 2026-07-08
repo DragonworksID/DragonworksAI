@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useHistory } from '../App.jsx'
+import UploadBox from '../UploadBox.jsx'
 
 const EXAMPLES = [
   'World Cup 2026 themed live streaming background with stadium lights and confetti, transparent product display area, festival mood',
@@ -15,7 +16,6 @@ export default function QuickGenerate() {
   const [result, setResult]     = useState(null)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
-  const fileRef                 = useRef()
 
   async function handleGenerate() {
     if (!prompt.trim()) { setError('Please enter a prompt.'); return }
@@ -40,13 +40,6 @@ export default function QuickGenerate() {
     } finally {
       setLoading(false)
     }
-  }
-
-  function handleFileSelect(file) {
-    if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = e => setRefImage({ file, preview: e.target.result })
-    reader.readAsDataURL(file)
   }
 
   function downloadResult() {
@@ -107,31 +100,14 @@ export default function QuickGenerate() {
 
           <div className="card">
             <div className="card-title">Reference Image (Optional)</div>
-            <div
-              className="upload-area"
-              style={{ minHeight: 120, cursor: refImage ? 'default' : 'pointer' }}
-              onClick={() => !refImage && fileRef.current?.click()}
-            >
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={e => handleFileSelect(e.target.files[0])}
-              />
-              {refImage ? (
-                <div className="upload-preview-wrap">
-                  <img src={refImage.preview} alt="ref" className="upload-preview" style={{ maxHeight: 120 }} />
-                  <button className="upload-clear" onClick={e => { e.stopPropagation(); setRefImage(null) }}>✕</button>
-                </div>
-              ) : (
-                <>
-                  <div className="upload-icon" style={{ fontSize: 22 }}>📎</div>
-                  <div className="upload-text"><span>Attach a reference</span></div>
-                  <div className="upload-hint">Optional style/theme reference</div>
-                </>
-              )}
-            </div>
+            <UploadBox
+              icon="📎"
+              hint="Optional style/theme reference"
+              image={refImage}
+              onSelect={setRefImage}
+              minHeight={120}
+              previewMaxHeight={120}
+            />
           </div>
 
           <button className="btn-generate" onClick={handleGenerate} disabled={loading}>

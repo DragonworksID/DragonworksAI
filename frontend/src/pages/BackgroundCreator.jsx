@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useHistory } from '../App.jsx'
+import UploadBox from '../UploadBox.jsx'
 
 const INITIAL = {
   description: '', subject: '', object_field: '', environment: '',
@@ -15,18 +16,9 @@ export default function BackgroundCreator() {
   const [result, setResult]     = useState(null)   // { image (base64), label, id }
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
-  const [dragOver, setDragOver] = useState(false)
-  const fileRef                 = useRef()
 
   function handleField(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
-  }
-
-  function handleFileSelect(file) {
-    if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = e => setRefImage({ file, preview: e.target.result })
-    reader.readAsDataURL(file)
   }
 
   async function handleGenerate() {
@@ -108,35 +100,11 @@ export default function BackgroundCreator() {
               Reference Image (Optional)
             </div>
 
-            <div
-              className={`upload-area${dragOver ? ' drag-over' : ''}`}
-              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={e => { e.preventDefault(); setDragOver(false); handleFileSelect(e.dataTransfer.files[0]) }}
-              onClick={() => !refImage && fileRef.current?.click()}
-              style={{ cursor: refImage ? 'default' : 'pointer' }}
-            >
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={e => handleFileSelect(e.target.files[0])}
-              />
-
-              {refImage ? (
-                <div className="upload-preview-wrap">
-                  <img src={refImage.preview} alt="Reference" className="upload-preview" />
-                  <button className="upload-clear" onClick={e => { e.stopPropagation(); setRefImage(null) }}>✕</button>
-                </div>
-              ) : (
-                <>
-                  <div className="upload-icon">🖼️</div>
-                  <div className="upload-text"><span>Click to upload</span> or drag & drop</div>
-                  <div className="upload-hint">PNG, JPG, WEBP — used as style reference</div>
-                </>
-              )}
-            </div>
+            <UploadBox
+              hint="PNG, JPG, WEBP — used as style reference"
+              image={refImage}
+              onSelect={setRefImage}
+            />
           </div>
 
           <div className="card">

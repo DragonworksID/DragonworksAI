@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useHistory } from '../App.jsx'
 import { useToast } from '../Toast.jsx'
+import UploadBox from '../UploadBox.jsx'
 
 // Locked pending further rollout — see the "AI Provider" card and "Image
 // Quality" row below for where these are enforced in the UI.
@@ -342,6 +343,8 @@ export default function ThumbnailCreator() {
                 icon="🧑"
                 image={baseImage}
                 onSelect={setBaseImage}
+                minHeight={150}
+                previewMaxHeight={150}
               />
               <UploadBox
                 label="Mood & Style Reference"
@@ -349,6 +352,8 @@ export default function ThumbnailCreator() {
                 icon="🎨"
                 image={bgImage}
                 onSelect={setBgImage}
+                minHeight={150}
+                previewMaxHeight={150}
               />
             </div>
           </div>
@@ -521,52 +526,6 @@ export default function ThumbnailCreator() {
             </div>
           )}
         </div>
-      </div>
-    </div>
-  )
-}
-
-function UploadBox({ label, hint, icon, image, onSelect }) {
-  const fileRef = useRef()
-  const [dragOver, setDragOver] = useState(false)
-
-  function handleFile(file) {
-    if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = e => onSelect({ file, preview: e.target.result })
-    reader.readAsDataURL(file)
-  }
-
-  return (
-    <div className="form-group">
-      <label className="form-label">{label} *</label>
-      <div
-        className={`upload-area${dragOver ? ' drag-over' : ''}`}
-        style={{ minHeight: 150, cursor: image ? 'default' : 'pointer' }}
-        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
-        onClick={() => !image && fileRef.current?.click()}
-      >
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={e => handleFile(e.target.files[0])}
-        />
-        {image ? (
-          <div className="upload-preview-wrap">
-            <img src={image.preview} alt={label} className="upload-preview" style={{ maxHeight: 150 }} />
-            <button className="upload-clear" onClick={e => { e.stopPropagation(); onSelect(null) }}>✕</button>
-          </div>
-        ) : (
-          <>
-            <div className="upload-icon">{icon}</div>
-            <div className="upload-text"><span>Click to upload</span> or drag & drop</div>
-            <div className="upload-hint">{hint}</div>
-          </>
-        )}
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useHistory } from '../App.jsx'
 import { useToast } from '../Toast.jsx'
+import UploadBox from '../UploadBox.jsx'
 
 // Converts a base64 PNG (as stored in History) into a File object so it can
 // be re-uploaded through the same form-data flow as a fresh upload.
@@ -31,13 +32,6 @@ export default function EditPhoto() {
     clearEditPhotoRequest()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  function handleFile(file) {
-    if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = e => setPhoto({ file, preview: e.target.result })
-    reader.readAsDataURL(file)
-  }
 
   async function handleEdit() {
     if (!photo?.file) { showToast('Please upload a photo to edit.'); return }
@@ -133,7 +127,7 @@ export default function EditPhoto() {
               icon="🖼️"
               image={photo}
               onSelect={setPhoto}
-              onFile={handleFile}
+              minHeight={150}
             />
           </div>
 
@@ -266,49 +260,6 @@ function BeforeAfterSlider({ before, after }) {
       </div>
       <div className="ba-slider-label ba-slider-label-left">Before</div>
       <div className="ba-slider-label ba-slider-label-right">After</div>
-    </div>
-  )
-}
-
-function UploadBox({ label, hint, icon, image, onSelect, onFile }) {
-  const fileRef = useRef()
-  const [dragOver, setDragOver] = useState(false)
-
-  function pick(file) {
-    if (onFile) onFile(file)
-  }
-
-  return (
-    <div className="form-group">
-      <label className="form-label">{label} *</label>
-      <div
-        className={`upload-area${dragOver ? ' drag-over' : ''}`}
-        style={{ minHeight: 150, cursor: image ? 'default' : 'pointer' }}
-        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); pick(e.dataTransfer.files[0]) }}
-        onClick={() => !image && fileRef.current?.click()}
-      >
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={e => pick(e.target.files[0])}
-        />
-        {image ? (
-          <div className="upload-preview-wrap">
-            <img src={image.preview} alt={label} className="upload-preview" style={{ maxHeight: 150 }} />
-            <button className="upload-clear" onClick={e => { e.stopPropagation(); onSelect(null) }}>✕</button>
-          </div>
-        ) : (
-          <>
-            <div className="upload-icon">{icon}</div>
-            <div className="upload-text"><span>Click to upload</span> or drag & drop</div>
-            <div className="upload-hint">{hint}</div>
-          </>
-        )}
-      </div>
     </div>
   )
 }

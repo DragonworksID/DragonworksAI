@@ -431,6 +431,14 @@ html, body, #root {
   background: rgba(139, 92, 246, 0.05);
 }
 
+/* Focused = ready to receive a pasted image (Ctrl+V / Cmd+V). Click the box
+   once to focus it, then paste — this outline is the cue that it's armed. */
+.upload-area:focus, .upload-area:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+}
+
 .upload-area input[type="file"] {
   position: absolute;
   inset: 0;
