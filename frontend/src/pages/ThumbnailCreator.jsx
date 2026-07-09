@@ -932,6 +932,75 @@ const LENOVO_THEME_PRESET_IDS = new Set(
   LENOVO_THEMES.flatMap(theme => Object.values(theme.variants).map(v => v.id))
 )
 
+// ── Debs Themes ──────────────────────────────────────────────
+// A brand with NO direct SP/P presets of its own — "Themes" is its only
+// option at the brand level (unlike Lenovo, which has plain SP/P plus
+// Themes). Currently just one theme, "Billboard" (S/Subject only); more can
+// be appended to this array later the same way the Lenovo lineups were.
+const DEBS_THEMES = [
+  {
+    id: 'billboard',
+    label: 'Billboard',
+    tagline: '',
+    variants: {
+      S: { id: 'debs-billboard-s', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail.
+INPUTS: Cover photo product + Background reference image (replace the product's background with the background reference image)
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference, replace the product's current background with the uploaded background reference and make it natural.
+Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
+Background characteristics: Create a natural look integrating the background, ensuring the talent's face is clear and bright; add a raised, colorful effect beside or in front of the talent without obscuring them. The talent is placed to the right side of the Billboard
+Add: Subtle depth of field Light bokeh particles Soft ambient glow. The Billboard is themed with subtle pink, purple, and white colour themes.
+SUBJECT TREATMENT: Keep the Billboard and subject recognizable, make it stand out and the focus point. Keep the original person recognizable. The Subjects are placed to the right side of the Billboard
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect,  No cartoon effect
+Enhance: Natural lighting Product visibility Sharpness Contrast Product
+HEADLINE: {{HEADLINE}}
+IMPORTANT: THE HEADLINE IS PLACED INSIDE THE BILLBOARD.
+TYPOGRAPHY: Premium viral Indonesian social media typography.
+Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
+Friendly, youthful, highly readable on mobile screens.
+Mixed font weights:
+- Main keywords ultra bold
+- Supporting words medium weight
+Text layout optimized for fast scanning within 1 second.
+Thick white stroke outline (8-12px)
+Soft dark drop shadow
+Slight 3D depth
+High contrast against background
+Important keywords highlighted using bright accent colors.
+Typography should feel:
+- modern
+- casual
+- relatable
+- energetic
+- social-media native
+Text spacing balanced and professional.
+Indonesian viral content style.
+CTR-optimized thumbnail typography.
+Premium advertising quality.
+Visual hierarchy: Subject Headline Background
+Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
+QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
+      get openai() { return this.gemini } } },
+    },
+  },
+]
+
+const DEBS_THEME_PRESET_IDS = new Set(
+  DEBS_THEMES.flatMap(theme => Object.values(theme.variants).map(v => v.id))
+)
+
+// Maps a brand's `id` (as used by PRESET_GROUPS / activeBrandId) to its
+// Themes drill-down data, if it has one. Generalizes the Lenovo Themes UI so
+// any brand — with or without its own plain SP/P presets — can plug in a
+// Themes option the same way. Add new themed brands here.
+const BRAND_THEME_CONFIG = {
+  lenovo: { themes: LENOVO_THEMES, ids: LENOVO_THEME_PRESET_IDS },
+  debs:   { themes: DEBS_THEMES,   ids: DEBS_THEME_PRESET_IDS },
+}
+
 // Grouped view of PRESETS for the two-level Brand Presets UI below — pick a
 // brand first (Lenovo / Universal / LEGO), then a version (SP / P / S), so
 // the button row doesn't grow unbounded as more brands/versions get added.
@@ -950,6 +1019,9 @@ const PRESET_GROUPS = (() => {
     byBrand[brandName].variants.push({ ...preset, variant })
   }
   groups.forEach(g => g.variants.sort((a, b) => (variantOrder[a.variant] ?? 9) - (variantOrder[b.variant] ?? 9)))
+  // Debs has no flat SP/P presets in PRESETS above — Themes is its only
+  // option — so it needs to be injected directly rather than derived.
+  groups.push({ id: 'debs', brand: 'Debs', variants: [] })
   return groups
 })()
 
@@ -1233,8 +1305,9 @@ export default function ThumbnailCreator() {
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {PRESET_GROUPS.map(group => {
+                const themeConfig = BRAND_THEME_CONFIG[group.id]
                 const groupHasActive = group.variants.some(v => v.id === activePresetId)
-                  || (group.id === 'lenovo' && LENOVO_THEME_PRESET_IDS.has(activePresetId))
+                  || (themeConfig && themeConfig.ids.has(activePresetId))
                 return (
                   <button
                     key={group.id}
@@ -1263,28 +1336,28 @@ export default function ThumbnailCreator() {
                     {activePresetId === v.id ? '✓ ' : ''}{v.variant}
                   </button>
                 ))}
-                {activeBrandId === 'lenovo' && (
+                {BRAND_THEME_CONFIG[activeBrandId] && (
                   <button
                     className="btn-secondary"
-                    style={activeThemeId || LENOVO_THEME_PRESET_IDS.has(activePresetId) ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
-                    onClick={() => setActiveThemeId(prev => (prev ? null : LENOVO_THEMES[0].id))}
+                    style={activeThemeId || BRAND_THEME_CONFIG[activeBrandId].ids.has(activePresetId) ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
+                    onClick={() => setActiveThemeId(prev => (prev ? null : BRAND_THEME_CONFIG[activeBrandId].themes[0].id))}
                   >
-                    {LENOVO_THEME_PRESET_IDS.has(activePresetId) ? '✓ ' : ''}Themes
+                    {BRAND_THEME_CONFIG[activeBrandId].ids.has(activePresetId) ? '✓ ' : ''}Themes
                   </button>
                 )}
               </div>
             )}
 
-            {activeBrandId === 'lenovo' && activeThemeId && (
+            {activeBrandId && BRAND_THEME_CONFIG[activeBrandId] && activeThemeId && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-                {LENOVO_THEMES.map(theme => {
+                {BRAND_THEME_CONFIG[activeBrandId].themes.map(theme => {
                   const themeHasActive = Object.values(theme.variants).some(v => v.id === activePresetId)
                   return (
                     <button
                       key={theme.id}
                       className="btn-secondary"
                       style={activeThemeId === theme.id || themeHasActive ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
-                      title={`"${theme.tagline}"`}
+                      title={theme.tagline ? `"${theme.tagline}"` : undefined}
                       onClick={() => setActiveThemeId(theme.id)}
                     >
                       {themeHasActive ? '✓ ' : ''}{theme.label}
@@ -1294,10 +1367,10 @@ export default function ThumbnailCreator() {
               </div>
             )}
 
-            {activeBrandId === 'lenovo' && activeThemeId && (
+            {activeBrandId && BRAND_THEME_CONFIG[activeBrandId] && activeThemeId && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
                 {['SP', 'P', 'S'].map(variantKey => {
-                  const v = LENOVO_THEMES.find(t => t.id === activeThemeId)?.variants[variantKey]
+                  const v = BRAND_THEME_CONFIG[activeBrandId].themes.find(t => t.id === activeThemeId)?.variants[variantKey]
                   if (!v) return null
                   return (
                     <button
