@@ -525,6 +525,27 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
   },
 ]
 
+// Grouped view of PRESETS for the two-level Brand Presets UI below — pick a
+// brand first (Lenovo / Universal / LEGO), then a version (SP / P / S), so
+// the button row doesn't grow unbounded as more brands/versions get added.
+// Derived from `preset.brand` (e.g. "Lenovo-SP") rather than a second copy
+// of the data, so PRESETS above stays the single source of truth.
+const PRESET_GROUPS = (() => {
+  const variantOrder = { SP: 0, P: 1, S: 2 }
+  const groups = []
+  const byBrand = {}
+  for (const preset of PRESETS) {
+    const [brandName, variant] = preset.brand.split('-')
+    if (!byBrand[brandName]) {
+      byBrand[brandName] = { id: brandName.toLowerCase(), brand: brandName, variants: [] }
+      groups.push(byBrand[brandName])
+    }
+    byBrand[brandName].variants.push({ ...preset, variant })
+  }
+  groups.forEach(g => g.variants.sort((a, b) => (variantOrder[a.variant] ?? 9) - (variantOrder[b.variant] ?? 9)))
+  return groups
+})()
+
 export default function ThumbnailCreator() {
   const { addToHistory } = useHistory()
   const { showToast } = useToast()
@@ -535,6 +556,7 @@ export default function ThumbnailCreator() {
   const [notes, setNotes]         = useState('')
   const [presetPrompt, setPresetPrompt]     = useState('')   // filled preset text, overrides notes when set
   const [activePresetId, setActivePresetId] = useState(null)
+  const [activeBrandId, setActiveBrandId]   = useState(null) // which Brand Presets group is expanded
   const [result, setResult]       = useState(null)
   const [loading, setLoading]     = useState(false)
   const [showPrompt, setShowPrompt] = useState(false)
@@ -626,6 +648,7 @@ export default function ThumbnailCreator() {
     setNotes('')
     setPresetPrompt('')
     setActivePresetId(null)
+    setActiveBrandId(null)
     setResult(null)
   }
 
@@ -776,22 +799,40 @@ export default function ThumbnailCreator() {
               Brand Presets
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 10 }}>
-              Fill in the Headline above, then click a brand to auto-fill its full prompt below.
-              Each preset has a version tuned for the AI Provider selected above — if you switch
-              providers after applying one, click the brand again to load the matching version.
+              Fill in the Headline above, then pick a brand and a version to auto-fill its full
+              prompt below. Each version is tuned for the AI Provider selected above — if you
+              switch providers after applying one, click the version again to load the matching one.
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {PRESETS.map(p => (
-                <button
-                  key={p.id}
-                  className="btn-secondary"
-                  style={activePresetId === p.id ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
-                  onClick={() => handleApplyPreset(p)}
-                >
-                  {activePresetId === p.id ? '✓ ' : ''}{p.brand}
-                </button>
-              ))}
+              {PRESET_GROUPS.map(group => {
+                const groupHasActive = group.variants.some(v => v.id === activePresetId)
+                return (
+                  <button
+                    key={group.id}
+                    className="btn-secondary"
+                    style={activeBrandId === group.id || groupHasActive ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
+                    onClick={() => setActiveBrandId(prev => (prev === group.id ? null : group.id))}
+                  >
+                    {groupHasActive ? '✓ ' : ''}{group.brand}
+                  </button>
+                )
+              })}
             </div>
+
+            {activeBrandId && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                {PRESET_GROUPS.find(g => g.id === activeBrandId)?.variants.map(v => (
+                  <button
+                    key={v.id}
+                    className="btn-secondary"
+                    style={activePresetId === v.id ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
+                    onClick={() => handleApplyPreset(v)}
+                  >
+                    {activePresetId === v.id ? '✓ ' : ''}{v.variant}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {presetPrompt && (
               <div style={{ marginTop: 14 }}>
