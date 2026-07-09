@@ -525,6 +525,413 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
   },
 ]
 
+// ── Lenovo Themes ────────────────────────────────────────────
+// A THIRD option under the Lenovo brand row (alongside SP/P), only for
+// Lenovo. Clicking "Themes" reveals 6 product-lineup looks (Legion Tab,
+// Yoga Tab, Idea Tab Pro, MotoPad 60 Lite/Neo/Pro), each with its own S/SP/P
+// trio built off the same Lenovo-SP/Lenovo-P skeleton — same section
+// structure and IMPORTANT/SUBJECT TREATMENT wording as the rest of the
+// presets, but with a fixed background scene, color palette, mood and
+// typography per lineup so the output matches that lineup's official look
+// regardless of what background photo gets uploaded (same "override the
+// uploaded background with a fixed brand identity" approach the LEGO presets
+// already use). Like Universal/LEGO, no separately-tuned Gemini scaffold —
+// same brief for both providers; split `gemini` out later if Gemini gets
+// unlocked and needs Nano-Banana-specific guardrails.
+const LENOVO_THEMES = [
+  {
+    id: 'legion-tab',
+    label: 'Legion Tab',
+    tagline: 'Play All Out',
+    variants: {
+      SP: { id: 'lenovo-legion-tab-sp', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Legion Tab.
+INPUTS: Cover photo (talent + product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a dramatic dark esports scene — a cracked, glowing volcanic-black ground with lava-orange fissures running through it, a distant neon-lit cityscape silhouette on the horizon, and sharp diagonal streaks of electric-blue and magenta light slicing across the sky like laser beams.
+Maintain: deep midnight black and charcoal as the base, with electric blue, violet and hot-magenta neon light as the accent colors, as the dominant color story across the whole image.
+Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Clean composition. Consistent with the official Lenovo Legion Tab "Play All Out" campaign look.
+Add: Drifting embers and sparks, Faint volumetric fog, Glowing light trails, A distant skyline silhouette, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
+Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A bold, angular, futuristic esports/gaming display font with a slight forward lean — bright white or icy-blue fill with a thin neon-blue or magenta glow outline, aggressive and high-contrast against the dark background. Position small uppercase brand text reading "LENOVO" and "LEGION TAB" near the headline as a consistent brand tag, exactly like the official Lenovo Legion Tab "Play All Out" template.
+COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, High-energy gaming/esports mood, dramatic and cinematic lighting
+STYLE REFERENCE: Official Lenovo Legion Tab "Play All Out" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Legion Tab branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      P: { id: 'lenovo-legion-tab-p', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Legion Tab.
+INPUTS: Cover photo (product) + Background reference image. No people in frame.
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a dramatic dark esports scene — a cracked, glowing volcanic-black ground with lava-orange fissures running through it, a distant neon-lit cityscape silhouette on the horizon, and sharp diagonal streaks of electric-blue and magenta light slicing across the sky like laser beams.
+Maintain: deep midnight black and charcoal as the base, with electric blue, violet and hot-magenta neon light as the accent colors, as the dominant color story across the whole image.
+Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Clean composition. Consistent with the official Lenovo Legion Tab "Play All Out" campaign look.
+Add: Drifting embers and sparks, Faint volumetric fog, Glowing light trails, A distant skyline silhouette, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
+IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A bold, angular, futuristic esports/gaming display font with a slight forward lean — bright white or icy-blue fill with a thin neon-blue or magenta glow outline, aggressive and high-contrast against the dark background. Position small uppercase brand text reading "LENOVO" and "LEGION TAB" near the headline as a consistent brand tag, exactly like the official Lenovo Legion Tab "Play All Out" template.
+COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, High-energy gaming/esports mood, dramatic and cinematic lighting
+STYLE REFERENCE: Official Lenovo Legion Tab "Play All Out" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Legion Tab branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      S: { id: 'lenovo-legion-tab-s', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Legion Tab.
+INPUTS: Cover photo (talent/subject) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a dramatic dark esports scene — a cracked, glowing volcanic-black ground with lava-orange fissures running through it, a distant neon-lit cityscape silhouette on the horizon, and sharp diagonal streaks of electric-blue and magenta light slicing across the sky like laser beams.
+Maintain: deep midnight black and charcoal as the base, with electric blue, violet and hot-magenta neon light as the accent colors, as the dominant color story across the whole image.
+Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Clean composition. Consistent with the official Lenovo Legion Tab "Play All Out" campaign look.
+Add: Drifting embers and sparks, Faint volumetric fog, Glowing light trails, A distant skyline silhouette, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
+Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A bold, angular, futuristic esports/gaming display font with a slight forward lean — bright white or icy-blue fill with a thin neon-blue or magenta glow outline, aggressive and high-contrast against the dark background. Position small uppercase brand text reading "LENOVO" and "LEGION TAB" near the headline as a consistent brand tag, exactly like the official Lenovo Legion Tab "Play All Out" template.
+COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, High-energy gaming/esports mood, dramatic and cinematic lighting
+STYLE REFERENCE: Official Lenovo Legion Tab "Play All Out" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Legion Tab branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+    },
+  },
+  {
+    id: 'yoga-tab',
+    label: 'Yoga Tab',
+    tagline: 'Flow In Color',
+    variants: {
+      SP: { id: 'lenovo-yoga-tab-sp', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Yoga Tab.
+INPUTS: Cover photo (talent + product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a soft, dreamy pastel sunset landscape — a glowing sun or archway silhouette low on the horizon, gentle painterly brushstroke hills and clouds in coral, peach and lavender, with plenty of soft open space and a calm, airy composition.
+Maintain: a warm sunset gradient of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
+Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Clean composition. Consistent with the official Lenovo Yoga Tab "Flow In Color" campaign look.
+Add: Soft painterly brushstroke shapes, A warm sun-glow, A couple of simple silhouette plant leaves, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
+Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A friendly, rounded bold sans-serif for the main headline text in dark charcoal, paired with a light, flowing script/cursive accent style for any secondary tagline text in warm coral or pink — soft, elegant and calming. Position small uppercase brand text reading "LENOVO" and "YOGA TAB" near the headline as a consistent brand tag, exactly like the official Lenovo Yoga Tab "Flow In Color" template.
+COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Calm dreamy mood, warm golden-hour glow
+STYLE REFERENCE: Official Lenovo Yoga Tab "Flow In Color" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Yoga Tab branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      P: { id: 'lenovo-yoga-tab-p', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Yoga Tab.
+INPUTS: Cover photo (product) + Background reference image. No people in frame.
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a soft, dreamy pastel sunset landscape — a glowing sun or archway silhouette low on the horizon, gentle painterly brushstroke hills and clouds in coral, peach and lavender, with plenty of soft open space and a calm, airy composition.
+Maintain: a warm sunset gradient of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
+Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Clean composition. Consistent with the official Lenovo Yoga Tab "Flow In Color" campaign look.
+Add: Soft painterly brushstroke shapes, A warm sun-glow, A couple of simple silhouette plant leaves, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
+IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A friendly, rounded bold sans-serif for the main headline text in dark charcoal, paired with a light, flowing script/cursive accent style for any secondary tagline text in warm coral or pink — soft, elegant and calming. Position small uppercase brand text reading "LENOVO" and "YOGA TAB" near the headline as a consistent brand tag, exactly like the official Lenovo Yoga Tab "Flow In Color" template.
+COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Calm dreamy mood, warm golden-hour glow
+STYLE REFERENCE: Official Lenovo Yoga Tab "Flow In Color" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Yoga Tab branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      S: { id: 'lenovo-yoga-tab-s', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Yoga Tab.
+INPUTS: Cover photo (talent/subject) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a soft, dreamy pastel sunset landscape — a glowing sun or archway silhouette low on the horizon, gentle painterly brushstroke hills and clouds in coral, peach and lavender, with plenty of soft open space and a calm, airy composition.
+Maintain: a warm sunset gradient of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
+Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Clean composition. Consistent with the official Lenovo Yoga Tab "Flow In Color" campaign look.
+Add: Soft painterly brushstroke shapes, A warm sun-glow, A couple of simple silhouette plant leaves, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
+Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A friendly, rounded bold sans-serif for the main headline text in dark charcoal, paired with a light, flowing script/cursive accent style for any secondary tagline text in warm coral or pink — soft, elegant and calming. Position small uppercase brand text reading "LENOVO" and "YOGA TAB" near the headline as a consistent brand tag, exactly like the official Lenovo Yoga Tab "Flow In Color" template.
+COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Calm dreamy mood, warm golden-hour glow
+STYLE REFERENCE: Official Lenovo Yoga Tab "Flow In Color" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Yoga Tab branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+    },
+  },
+  {
+    id: 'idea-tab-pro',
+    label: 'Idea Tab Pro',
+    tagline: 'Create More, Achieve More',
+    variants: {
+      SP: { id: 'lenovo-idea-tab-pro-sp', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Idea Tab Pro.
+INPUTS: Cover photo (talent + product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bright, clean pastel sky-blue productivity scene — soft cloud-like brushstroke shapes drifting in the background, a tidy stack of books, a small potted plant, and pencils/pens standing in a cup, with a couple of loose paper or sticky-note doodles drifting in the air.
+Maintain: soft pastel sky blue and powder blue with clean white cloud-like accents as the dominant color story across the whole image.
+Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Clean composition. Consistent with the official Lenovo Idea Tab Pro "Create More, Achieve More" campaign look.
+Add: A stack of books, A small potted plant, Pencils in a cup, Floating paper/sticky-note doodles, Soft cloud shapes, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
+Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A clean, confident bold sans-serif for the main headline text in near-black, paired with a smooth italic script accent style for any secondary tagline text in deep navy blue — professional, modern and approachable. Position small uppercase brand text reading "LENOVO" and "IDEA TAB PRO" near the headline as a consistent brand tag, exactly like the official Lenovo Idea Tab Pro "Create More, Achieve More" template.
+COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright clean productive mood, soft even daylight
+STYLE REFERENCE: Official Lenovo Idea Tab Pro "Create More, Achieve More" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Idea Tab Pro branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      P: { id: 'lenovo-idea-tab-pro-p', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Idea Tab Pro.
+INPUTS: Cover photo (product) + Background reference image. No people in frame.
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bright, clean pastel sky-blue productivity scene — soft cloud-like brushstroke shapes drifting in the background, a tidy stack of books, a small potted plant, and pencils/pens standing in a cup, with a couple of loose paper or sticky-note doodles drifting in the air.
+Maintain: soft pastel sky blue and powder blue with clean white cloud-like accents as the dominant color story across the whole image.
+Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Clean composition. Consistent with the official Lenovo Idea Tab Pro "Create More, Achieve More" campaign look.
+Add: A stack of books, A small potted plant, Pencils in a cup, Floating paper/sticky-note doodles, Soft cloud shapes, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
+IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A clean, confident bold sans-serif for the main headline text in near-black, paired with a smooth italic script accent style for any secondary tagline text in deep navy blue — professional, modern and approachable. Position small uppercase brand text reading "LENOVO" and "IDEA TAB PRO" near the headline as a consistent brand tag, exactly like the official Lenovo Idea Tab Pro "Create More, Achieve More" template.
+COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright clean productive mood, soft even daylight
+STYLE REFERENCE: Official Lenovo Idea Tab Pro "Create More, Achieve More" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Idea Tab Pro branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      S: { id: 'lenovo-idea-tab-pro-s', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Idea Tab Pro.
+INPUTS: Cover photo (talent/subject) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bright, clean pastel sky-blue productivity scene — soft cloud-like brushstroke shapes drifting in the background, a tidy stack of books, a small potted plant, and pencils/pens standing in a cup, with a couple of loose paper or sticky-note doodles drifting in the air.
+Maintain: soft pastel sky blue and powder blue with clean white cloud-like accents as the dominant color story across the whole image.
+Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Clean composition. Consistent with the official Lenovo Idea Tab Pro "Create More, Achieve More" campaign look.
+Add: A stack of books, A small potted plant, Pencils in a cup, Floating paper/sticky-note doodles, Soft cloud shapes, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
+Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A clean, confident bold sans-serif for the main headline text in near-black, paired with a smooth italic script accent style for any secondary tagline text in deep navy blue — professional, modern and approachable. Position small uppercase brand text reading "LENOVO" and "IDEA TAB PRO" near the headline as a consistent brand tag, exactly like the official Lenovo Idea Tab Pro "Create More, Achieve More" template.
+COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright clean productive mood, soft even daylight
+STYLE REFERENCE: Official Lenovo Idea Tab Pro "Create More, Achieve More" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Idea Tab Pro branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+    },
+  },
+  {
+    id: 'motopad-60-lite',
+    label: 'MotoPad 60 Lite',
+    tagline: 'Fun Made Easy',
+    variants: {
+      SP: { id: 'lenovo-motopad-60-lite-sp', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Lite.
+INPUTS: Cover photo (talent + product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a warm cream/ivory background with a few large soft organic blob shapes in pastel pink and sky-blue, plus scattered small doodle elements — a tiny paper airplane, small star outlines, thin circle outlines — floating around with generous open negative space.
+Maintain: warm cream/ivory as the base, with playful pastel pink, sky-blue and soft-yellow accent blobs, as the dominant color story across the whole image.
+Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Lite "Fun Made Easy" campaign look.
+Add: A small paper-airplane doodle, Tiny star outline doodles, Thin circle outlines, Soft organic blob shapes, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
+Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A friendly, chunky rounded bold sans-serif for the main headline text in dark charcoal, paired with a playful cursive/script accent style for any secondary tagline text in soft teal or aqua — casual, light-hearted and easy to read. Position small uppercase brand text reading "MOTOPAD" and "60 LITE" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Lite "Fun Made Easy" template.
+COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Light playful mood, bright even daylight
+STYLE REFERENCE: Official MotoPad 60 Lite "Fun Made Easy" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Lite branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      P: { id: 'lenovo-motopad-60-lite-p', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Lite.
+INPUTS: Cover photo (product) + Background reference image. No people in frame.
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a warm cream/ivory background with a few large soft organic blob shapes in pastel pink and sky-blue, plus scattered small doodle elements — a tiny paper airplane, small star outlines, thin circle outlines — floating around with generous open negative space.
+Maintain: warm cream/ivory as the base, with playful pastel pink, sky-blue and soft-yellow accent blobs, as the dominant color story across the whole image.
+Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Lite "Fun Made Easy" campaign look.
+Add: A small paper-airplane doodle, Tiny star outline doodles, Thin circle outlines, Soft organic blob shapes, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
+IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A friendly, chunky rounded bold sans-serif for the main headline text in dark charcoal, paired with a playful cursive/script accent style for any secondary tagline text in soft teal or aqua — casual, light-hearted and easy to read. Position small uppercase brand text reading "MOTOPAD" and "60 LITE" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Lite "Fun Made Easy" template.
+COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Light playful mood, bright even daylight
+STYLE REFERENCE: Official MotoPad 60 Lite "Fun Made Easy" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Lite branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      S: { id: 'lenovo-motopad-60-lite-s', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Lite.
+INPUTS: Cover photo (talent/subject) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a warm cream/ivory background with a few large soft organic blob shapes in pastel pink and sky-blue, plus scattered small doodle elements — a tiny paper airplane, small star outlines, thin circle outlines — floating around with generous open negative space.
+Maintain: warm cream/ivory as the base, with playful pastel pink, sky-blue and soft-yellow accent blobs, as the dominant color story across the whole image.
+Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Lite "Fun Made Easy" campaign look.
+Add: A small paper-airplane doodle, Tiny star outline doodles, Thin circle outlines, Soft organic blob shapes, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
+Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A friendly, chunky rounded bold sans-serif for the main headline text in dark charcoal, paired with a playful cursive/script accent style for any secondary tagline text in soft teal or aqua — casual, light-hearted and easy to read. Position small uppercase brand text reading "MOTOPAD" and "60 LITE" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Lite "Fun Made Easy" template.
+COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Light playful mood, bright even daylight
+STYLE REFERENCE: Official MotoPad 60 Lite "Fun Made Easy" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Lite branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+    },
+  },
+  {
+    id: 'motopad-60-neo',
+    label: 'MotoPad 60 Neo',
+    tagline: 'Good Days, Every Day',
+    variants: {
+      SP: { id: 'lenovo-motopad-60-neo-sp', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Neo.
+INPUTS: Cover photo (talent + product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a fresh green outdoor scene — rolling grassy hills, a winding dirt path with a simple bicycle resting on it, small wildflowers scattered in the foreground, soft rounded trees, and gentle clouds in a pale sky.
+Maintain: fresh spring green and sky blue with soft white cloud accents as the dominant color story across the whole image.
+Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Neo "Good Days, Every Day" campaign look.
+Add: A bicycle, A winding path, Small wildflowers, Rolling hills, Soft round trees, Gentle clouds, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
+Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A clean, rounded bold sans-serif for the main headline text in dark forest green or near-black, paired with a relaxed handwritten-style script accent for any secondary tagline text in fresh green — natural, optimistic and easygoing. Position small uppercase brand text reading "MOTOPAD" and "60 NEO" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Neo "Good Days, Every Day" template.
+COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Fresh optimistic mood, bright natural daylight
+STYLE REFERENCE: Official MotoPad 60 Neo "Good Days, Every Day" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Neo branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      P: { id: 'lenovo-motopad-60-neo-p', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Neo.
+INPUTS: Cover photo (product) + Background reference image. No people in frame.
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a fresh green outdoor scene — rolling grassy hills, a winding dirt path with a simple bicycle resting on it, small wildflowers scattered in the foreground, soft rounded trees, and gentle clouds in a pale sky.
+Maintain: fresh spring green and sky blue with soft white cloud accents as the dominant color story across the whole image.
+Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Neo "Good Days, Every Day" campaign look.
+Add: A bicycle, A winding path, Small wildflowers, Rolling hills, Soft round trees, Gentle clouds, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
+IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A clean, rounded bold sans-serif for the main headline text in dark forest green or near-black, paired with a relaxed handwritten-style script accent for any secondary tagline text in fresh green — natural, optimistic and easygoing. Position small uppercase brand text reading "MOTOPAD" and "60 NEO" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Neo "Good Days, Every Day" template.
+COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Fresh optimistic mood, bright natural daylight
+STYLE REFERENCE: Official MotoPad 60 Neo "Good Days, Every Day" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Neo branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      S: { id: 'lenovo-motopad-60-neo-s', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Neo.
+INPUTS: Cover photo (talent/subject) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a fresh green outdoor scene — rolling grassy hills, a winding dirt path with a simple bicycle resting on it, small wildflowers scattered in the foreground, soft rounded trees, and gentle clouds in a pale sky.
+Maintain: fresh spring green and sky blue with soft white cloud accents as the dominant color story across the whole image.
+Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Neo "Good Days, Every Day" campaign look.
+Add: A bicycle, A winding path, Small wildflowers, Rolling hills, Soft round trees, Gentle clouds, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
+Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A clean, rounded bold sans-serif for the main headline text in dark forest green or near-black, paired with a relaxed handwritten-style script accent for any secondary tagline text in fresh green — natural, optimistic and easygoing. Position small uppercase brand text reading "MOTOPAD" and "60 NEO" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Neo "Good Days, Every Day" template.
+COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Fresh optimistic mood, bright natural daylight
+STYLE REFERENCE: Official MotoPad 60 Neo "Good Days, Every Day" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Neo branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+    },
+  },
+  {
+    id: 'motopad-60-pro',
+    label: 'MotoPad 60 Pro',
+    tagline: 'Bold Days, Best You',
+    variants: {
+      SP: { id: 'lenovo-motopad-60-pro-sp', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Pro.
+INPUTS: Cover photo (talent + product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bold abstract premium studio scene — sweeping ribbons of purple-to-magenta-to-blue gradient light, a glossy faceted crystal/gem shape and a reflective sphere as accent props, resting on a glossy podium-like surface with a soft reflection beneath.
+Maintain: a bold jewel-tone gradient of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
+Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Clean composition. Consistent with the official MotoPad 60 Pro "Bold Days, Best You" campaign look.
+Add: A faceted glass/crystal shape, A glossy reflective sphere, A reflective podium surface, Sweeping gradient light ribbons, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
+Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A bold, premium geometric sans-serif for the main headline text in white or near-black with a subtle metallic sheen, paired with an elegant script accent for any secondary tagline text in vivid purple or magenta — luxurious, confident and high-impact. Position small uppercase brand text reading "MOTOPAD" and "60 PRO" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Pro "Bold Days, Best You" template.
+COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bold dramatic mood, high-end studio lighting
+STYLE REFERENCE: Official MotoPad 60 Pro "Bold Days, Best You" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Pro branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      P: { id: 'lenovo-motopad-60-pro-p', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Pro.
+INPUTS: Cover photo (product) + Background reference image. No people in frame.
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bold abstract premium studio scene — sweeping ribbons of purple-to-magenta-to-blue gradient light, a glossy faceted crystal/gem shape and a reflective sphere as accent props, resting on a glossy podium-like surface with a soft reflection beneath.
+Maintain: a bold jewel-tone gradient of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
+Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Clean composition. Consistent with the official MotoPad 60 Pro "Bold Days, Best You" campaign look.
+Add: A faceted glass/crystal shape, A glossy reflective sphere, A reflective podium surface, Sweeping gradient light ribbons, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
+IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A bold, premium geometric sans-serif for the main headline text in white or near-black with a subtle metallic sheen, paired with an elegant script accent for any secondary tagline text in vivid purple or magenta — luxurious, confident and high-impact. Position small uppercase brand text reading "MOTOPAD" and "60 PRO" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Pro "Bold Days, Best You" template.
+COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bold dramatic mood, high-end studio lighting
+STYLE REFERENCE: Official MotoPad 60 Pro "Bold Days, Best You" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Pro branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+      S: { id: 'lenovo-motopad-60-pro-s', templates: { gemini:
+`You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Pro.
+INPUTS: Cover photo (talent/subject) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bold abstract premium studio scene — sweeping ribbons of purple-to-magenta-to-blue gradient light, a glossy faceted crystal/gem shape and a reflective sphere as accent props, resting on a glossy podium-like surface with a soft reflection beneath.
+Maintain: a bold jewel-tone gradient of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
+Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Clean composition. Consistent with the official MotoPad 60 Pro "Bold Days, Best You" campaign look.
+Add: A faceted glass/crystal shape, A glossy reflective sphere, A reflective podium surface, Sweeping gradient light ribbons, Subtle depth of field, Soft ambient glow
+SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
+Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: A bold, premium geometric sans-serif for the main headline text in white or near-black with a subtle metallic sheen, paired with an elegant script accent for any secondary tagline text in vivid purple or magenta — luxurious, confident and high-impact. Position small uppercase brand text reading "MOTOPAD" and "60 PRO" near the headline as a consistent brand tag, exactly like the official MotoPad 60 Pro "Bold Days, Best You" template.
+COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bold dramatic mood, high-end studio lighting
+STYLE REFERENCE: Official MotoPad 60 Pro "Bold Days, Best You" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Pro branding, 1080x1440`,
+      get openai() { return this.gemini } } },
+    },
+  },
+]
+
+// Flat set of every themed preset id, so the Lenovo brand button can still
+// show its "✓ active" checkmark when a themed S/SP/P (rather than a plain
+// Lenovo-SP/Lenovo-P) preset is the one currently applied.
+const LENOVO_THEME_PRESET_IDS = new Set(
+  LENOVO_THEMES.flatMap(theme => Object.values(theme.variants).map(v => v.id))
+)
+
 // Grouped view of PRESETS for the two-level Brand Presets UI below — pick a
 // brand first (Lenovo / Universal / LEGO), then a version (SP / P / S), so
 // the button row doesn't grow unbounded as more brands/versions get added.
@@ -558,6 +965,7 @@ export default function ThumbnailCreator() {
   const [activePresetId, setActivePresetId] = useState(null)
   const [preserveFace, setPreserveFace]     = useState(false) // off by default — appends a modular face/subject identity-lock instruction on top of whatever prompt (preset or notes) is sent
   const [activeBrandId, setActiveBrandId]   = useState(null) // which Brand Presets group is expanded
+  const [activeThemeId, setActiveThemeId]   = useState(null) // Lenovo only — which of the 6 Themes is expanded (shows its S/SP/P row)
   const [result, setResult]       = useState(null)
   const [loading, setLoading]     = useState(false)
   const [showPrompt, setShowPrompt] = useState(false)
@@ -651,6 +1059,7 @@ export default function ThumbnailCreator() {
     setPresetPrompt('')
     setActivePresetId(null)
     setActiveBrandId(null)
+    setActiveThemeId(null)
     setPreserveFace(false)
     setResult(null)
   }
@@ -825,12 +1234,16 @@ export default function ThumbnailCreator() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {PRESET_GROUPS.map(group => {
                 const groupHasActive = group.variants.some(v => v.id === activePresetId)
+                  || (group.id === 'lenovo' && LENOVO_THEME_PRESET_IDS.has(activePresetId))
                 return (
                   <button
                     key={group.id}
                     className="btn-secondary"
                     style={activeBrandId === group.id || groupHasActive ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
-                    onClick={() => setActiveBrandId(prev => (prev === group.id ? null : group.id))}
+                    onClick={() => {
+                      setActiveBrandId(prev => (prev === group.id ? null : group.id))
+                      setActiveThemeId(null)
+                    }}
                   >
                     {groupHasActive ? '✓ ' : ''}{group.brand}
                   </button>
@@ -845,11 +1258,58 @@ export default function ThumbnailCreator() {
                     key={v.id}
                     className="btn-secondary"
                     style={activePresetId === v.id ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
-                    onClick={() => handleApplyPreset(v)}
+                    onClick={() => { handleApplyPreset(v); setActiveThemeId(null) }}
                   >
                     {activePresetId === v.id ? '✓ ' : ''}{v.variant}
                   </button>
                 ))}
+                {activeBrandId === 'lenovo' && (
+                  <button
+                    className="btn-secondary"
+                    style={activeThemeId || LENOVO_THEME_PRESET_IDS.has(activePresetId) ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
+                    onClick={() => setActiveThemeId(prev => (prev ? null : LENOVO_THEMES[0].id))}
+                  >
+                    {LENOVO_THEME_PRESET_IDS.has(activePresetId) ? '✓ ' : ''}Themes
+                  </button>
+                )}
+              </div>
+            )}
+
+            {activeBrandId === 'lenovo' && activeThemeId && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                {LENOVO_THEMES.map(theme => {
+                  const themeHasActive = Object.values(theme.variants).some(v => v.id === activePresetId)
+                  return (
+                    <button
+                      key={theme.id}
+                      className="btn-secondary"
+                      style={activeThemeId === theme.id || themeHasActive ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
+                      title={`"${theme.tagline}"`}
+                      onClick={() => setActiveThemeId(theme.id)}
+                    >
+                      {themeHasActive ? '✓ ' : ''}{theme.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {activeBrandId === 'lenovo' && activeThemeId && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingTop: 10, borderTop: '1px dashed var(--border)' }}>
+                {['SP', 'P', 'S'].map(variantKey => {
+                  const v = LENOVO_THEMES.find(t => t.id === activeThemeId)?.variants[variantKey]
+                  if (!v) return null
+                  return (
+                    <button
+                      key={v.id}
+                      className="btn-secondary"
+                      style={activePresetId === v.id ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
+                      onClick={() => handleApplyPreset(v)}
+                    >
+                      {activePresetId === v.id ? '✓ ' : ''}{variantKey}
+                    </button>
+                  )
+                })}
               </div>
             )}
 
