@@ -32,7 +32,14 @@ export default function QuickGenerate() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Generation failed')
 
-      const item = { id: data.id, image: data.image, label: data.label, ratio: 'custom', ts: new Date().toLocaleTimeString() }
+      const item = {
+        id:     data.id,
+        image:  data.image,
+        label:  data.label,
+        prompt: data.prompt_used || '',
+        ratio:  'custom',
+        ts:     new Date().toLocaleTimeString(),
+      }
       setResult(item)
       addToHistory(item)
     } catch (err) {

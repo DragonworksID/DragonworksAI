@@ -41,11 +41,12 @@ export default function BackgroundCreator() {
       if (!res.ok) throw new Error(data.detail || 'Generation failed')
 
       const item = {
-        id:    data.id,
-        image: data.image,
-        label: data.label,
+        id:     data.id,
+        image:  data.image,
+        label:  data.label,
+        prompt: data.prompt_used || '',
         ratio,
-        ts:    new Date().toLocaleTimeString(),
+        ts:     new Date().toLocaleTimeString(),
       }
       setResult(item)
       addToHistory(item)

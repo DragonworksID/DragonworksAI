@@ -1006,6 +1006,7 @@ async def generate_background(
         "image":  image_b64,
         "format": "png",
         "label":  label,
+        "prompt_used": prompt,
     }
 
 
@@ -1262,6 +1263,7 @@ async def quick_generate(
         "image":  image_b64,
         "format": "png",
         "label":  label,
+        "prompt_used": full_prompt,
     }
 
 
