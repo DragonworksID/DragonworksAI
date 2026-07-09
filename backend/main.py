@@ -912,6 +912,26 @@ def enrich_thumbnail_prompt(base_prompt: str, headline: str,
         return base_prompt
 
 
+# Modular "Lock face / subject identity" add-on — OFF by default, toggled per
+# request from the Headline & Notes card in the frontend (checkbox sits right
+# below Notes). Appended to whichever prompt is about to be sent (preset,
+# custom, or the auto-built notes prompt) AFTER any enrichment rewrite, so the
+# enrichment step can't dilute/paraphrase it away and it lands as the very
+# last thing the model reads. Kept separate from the presets themselves so it
+# works uniformly regardless of which preset (or no preset at all) is active.
+FACE_LOCK_SNIPPET = (
+    "SUBJECT IDENTITY LOCK (strict, non-negotiable): the person in this image must be the "
+    "exact same individual shown in the reference/base photo — not a similar-looking new "
+    "face. Match their precise facial structure, eye shape and color, nose, mouth, eyebrows, "
+    "skin tone and texture, and hairstyle/hair color exactly as photographed. Do not "
+    "beautify, slim, de-age, restyle, or reinterpret any facial feature. Treat the reference "
+    "photo as the ground truth for identity — if any part of the face is ambiguous, "
+    "partially occluded, or at an odd angle, default to copying it as closely as possible "
+    "rather than inventing a new interpretation, even if that makes the result look less "
+    "'polished' than a fully reimagined face would."
+)
+
+
 def build_thumbnail_prompt(headline: str, notes: str) -> str:
     lines = [
         "Create a social-media video THUMBNAIL by compositing the two images above:",
@@ -1019,6 +1039,7 @@ async def generate_thumbnail(
     provider: str = Form(""),
     quality:  str = Form(""),
     enrich_prompt: str = Form("1"),   # OpenAI only: "1"/"0" — per-request enrichment toggle
+    preserve_face: str = Form("0"),   # "1"/"0" — appends FACE_LOCK_SNIPPET, off by default
     background_image: UploadFile = File(...),
     base_image:       UploadFile = File(...),
 ):
@@ -1119,6 +1140,12 @@ async def generate_thumbnail(
         # generating (grounded in the actual photos) — Gemini-only, see note
         # above. Silently falls back to `prompt` unchanged on failure.
         prompt = enrich_thumbnail_prompt(prompt, headline, bg_bytes, bg_mime, base_bytes, base_mime)
+
+    # Modular face/subject identity lock — applied last, after any enrichment
+    # rewrite, so it reaches the model verbatim regardless of provider or
+    # whether a preset/custom prompt or the plain notes-built prompt was used.
+    if (preserve_face or "0").strip() == "1":
+        prompt = prompt.rstrip() + "\n\n" + FACE_LOCK_SNIPPET
 
     try:
         if provider == "openai":

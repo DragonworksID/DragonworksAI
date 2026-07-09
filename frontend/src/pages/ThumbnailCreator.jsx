@@ -556,6 +556,7 @@ export default function ThumbnailCreator() {
   const [notes, setNotes]         = useState('')
   const [presetPrompt, setPresetPrompt]     = useState('')   // filled preset text, overrides notes when set
   const [activePresetId, setActivePresetId] = useState(null)
+  const [preserveFace, setPreserveFace]     = useState(false) // off by default — appends a modular face/subject identity-lock instruction on top of whatever prompt (preset or notes) is sent
   const [activeBrandId, setActiveBrandId]   = useState(null) // which Brand Presets group is expanded
   const [result, setResult]       = useState(null)
   const [loading, setLoading]     = useState(false)
@@ -599,6 +600,7 @@ export default function ThumbnailCreator() {
       fd.append('quality', quality)
       fd.append('enrich_prompt', enrichPrompt ? '1' : '0')
     }
+    fd.append('preserve_face', preserveFace ? '1' : '0')
     fd.append('background_image', bgImage.file)
     fd.append('base_image', baseImage.file)
     if (presetPrompt.trim()) {
@@ -649,6 +651,7 @@ export default function ThumbnailCreator() {
     setPresetPrompt('')
     setActivePresetId(null)
     setActiveBrandId(null)
+    setPreserveFace(false)
     setResult(null)
   }
 
@@ -787,6 +790,22 @@ export default function ThumbnailCreator() {
                 />
               </div>
             )}
+
+            <div style={{ marginTop: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={preserveFace}
+                  onChange={e => setPreserveFace(e.target.checked)}
+                />
+                <span className="form-label" style={{ margin: 0 }}>Lock face / subject identity</span>
+              </label>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 6 }}>
+                {preserveFace
+                  ? 'On: an extra instruction is added on top of the preset (or notes) prompt telling the AI to match the reference photo’s face exactly, instead of reinterpreting it each generation.'
+                  : 'Off: only the preset/notes prompt is sent, as written below.'}
+              </div>
+            </div>
 
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 10 }}>
               📐 Output ratio is fixed at <strong>1080×1440 (3:4)</strong>
