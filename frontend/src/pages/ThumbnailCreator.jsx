@@ -549,10 +549,10 @@ const LENOVO_THEMES = [
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a dramatic dark esports scene — a cracked, glowing volcanic-black ground with lava-orange fissures running through it, a distant neon-lit cityscape silhouette on the horizon, and sharp diagonal streaks of electric-blue and magenta light slicing across the sky like laser beams.
-Maintain: deep midnight black and charcoal as the base, with electric blue, violet and hot-magenta neon light as the accent colors, as the dominant color story across the whole image.
-Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Clean composition. Consistent with the official Lenovo Legion Tab "Play All Out" campaign look.
-Add: Drifting embers and sparks, Faint volumetric fog, Glowing light trails, A distant skyline silhouette, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Legion Tab "Play All Out" identity below.
+Maintain: deep midnight black and charcoal undertones, with electric blue, violet and hot-magenta neon light as the accent color grade, as the dominant color story across the whole image.
+Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Consistent with the Lenovo Legion Tab "Play All Out" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
 IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
 Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -568,10 +568,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a dramatic dark esports scene — a cracked, glowing volcanic-black ground with lava-orange fissures running through it, a distant neon-lit cityscape silhouette on the horizon, and sharp diagonal streaks of electric-blue and magenta light slicing across the sky like laser beams.
-Maintain: deep midnight black and charcoal as the base, with electric blue, violet and hot-magenta neon light as the accent colors, as the dominant color story across the whole image.
-Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Clean composition. Consistent with the official Lenovo Legion Tab "Play All Out" campaign look.
-Add: Drifting embers and sparks, Faint volumetric fog, Glowing light trails, A distant skyline silhouette, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Legion Tab "Play All Out" identity below.
+Maintain: deep midnight black and charcoal undertones, with electric blue, violet and hot-magenta neon light as the accent color grade, as the dominant color story across the whole image.
+Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Consistent with the Lenovo Legion Tab "Play All Out" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
 IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
 Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -587,10 +587,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a dramatic dark esports scene — a cracked, glowing volcanic-black ground with lava-orange fissures running through it, a distant neon-lit cityscape silhouette on the horizon, and sharp diagonal streaks of electric-blue and magenta light slicing across the sky like laser beams.
-Maintain: deep midnight black and charcoal as the base, with electric blue, violet and hot-magenta neon light as the accent colors, as the dominant color story across the whole image.
-Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Clean composition. Consistent with the official Lenovo Legion Tab "Play All Out" campaign look.
-Add: Drifting embers and sparks, Faint volumetric fog, Glowing light trails, A distant skyline silhouette, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Legion Tab "Play All Out" identity below.
+Maintain: deep midnight black and charcoal undertones, with electric blue, violet and hot-magenta neon light as the accent color grade, as the dominant color story across the whole image.
+Background characteristics: High-energy gaming/esports mood — dramatic, cinematic, intense and powerful. Premium and polished. Consistent with the Lenovo Legion Tab "Play All Out" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
 IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
 Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
@@ -613,10 +613,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a soft, dreamy pastel sunset landscape — a glowing sun or archway silhouette low on the horizon, gentle painterly brushstroke hills and clouds in coral, peach and lavender, with plenty of soft open space and a calm, airy composition.
-Maintain: a warm sunset gradient of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
-Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Clean composition. Consistent with the official Lenovo Yoga Tab "Flow In Color" campaign look.
-Add: Soft painterly brushstroke shapes, A warm sun-glow, A couple of simple silhouette plant leaves, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Yoga Tab "Flow In Color" identity below.
+Maintain: a warm sunset-inspired color grade of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
+Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Consistent with the Lenovo Yoga Tab "Flow In Color" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
 IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
 Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -632,10 +632,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a soft, dreamy pastel sunset landscape — a glowing sun or archway silhouette low on the horizon, gentle painterly brushstroke hills and clouds in coral, peach and lavender, with plenty of soft open space and a calm, airy composition.
-Maintain: a warm sunset gradient of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
-Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Clean composition. Consistent with the official Lenovo Yoga Tab "Flow In Color" campaign look.
-Add: Soft painterly brushstroke shapes, A warm sun-glow, A couple of simple silhouette plant leaves, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Yoga Tab "Flow In Color" identity below.
+Maintain: a warm sunset-inspired color grade of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
+Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Consistent with the Lenovo Yoga Tab "Flow In Color" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
 IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
 Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -651,10 +651,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a soft, dreamy pastel sunset landscape — a glowing sun or archway silhouette low on the horizon, gentle painterly brushstroke hills and clouds in coral, peach and lavender, with plenty of soft open space and a calm, airy composition.
-Maintain: a warm sunset gradient of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
-Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Clean composition. Consistent with the official Lenovo Yoga Tab "Flow In Color" campaign look.
-Add: Soft painterly brushstroke shapes, A warm sun-glow, A couple of simple silhouette plant leaves, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Yoga Tab "Flow In Color" identity below.
+Maintain: a warm sunset-inspired color grade of soft coral, peach, blush pink and lavender as the dominant color story across the whole image.
+Background characteristics: Calm, dreamy and creative mood — gentle, warm and flowing. Premium and polished. Consistent with the Lenovo Yoga Tab "Flow In Color" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
 IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
 Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
@@ -677,10 +677,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bright, clean pastel sky-blue productivity scene — soft cloud-like brushstroke shapes drifting in the background, a tidy stack of books, a small potted plant, and pencils/pens standing in a cup, with a couple of loose paper or sticky-note doodles drifting in the air.
-Maintain: soft pastel sky blue and powder blue with clean white cloud-like accents as the dominant color story across the whole image.
-Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Clean composition. Consistent with the official Lenovo Idea Tab Pro "Create More, Achieve More" campaign look.
-Add: A stack of books, A small potted plant, Pencils in a cup, Floating paper/sticky-note doodles, Soft cloud shapes, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Idea Tab Pro "Create More, Achieve More" identity below.
+Maintain: a soft pastel sky-blue and powder-blue color grade with clean white cloud-like highlights as the dominant color story across the whole image.
+Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Consistent with the Lenovo Idea Tab Pro "Create More, Achieve More" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
 IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
 Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -696,10 +696,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bright, clean pastel sky-blue productivity scene — soft cloud-like brushstroke shapes drifting in the background, a tidy stack of books, a small potted plant, and pencils/pens standing in a cup, with a couple of loose paper or sticky-note doodles drifting in the air.
-Maintain: soft pastel sky blue and powder blue with clean white cloud-like accents as the dominant color story across the whole image.
-Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Clean composition. Consistent with the official Lenovo Idea Tab Pro "Create More, Achieve More" campaign look.
-Add: A stack of books, A small potted plant, Pencils in a cup, Floating paper/sticky-note doodles, Soft cloud shapes, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Idea Tab Pro "Create More, Achieve More" identity below.
+Maintain: a soft pastel sky-blue and powder-blue color grade with clean white cloud-like highlights as the dominant color story across the whole image.
+Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Consistent with the Lenovo Idea Tab Pro "Create More, Achieve More" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
 IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
 Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -715,10 +715,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bright, clean pastel sky-blue productivity scene — soft cloud-like brushstroke shapes drifting in the background, a tidy stack of books, a small potted plant, and pencils/pens standing in a cup, with a couple of loose paper or sticky-note doodles drifting in the air.
-Maintain: soft pastel sky blue and powder blue with clean white cloud-like accents as the dominant color story across the whole image.
-Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Clean composition. Consistent with the official Lenovo Idea Tab Pro "Create More, Achieve More" campaign look.
-Add: A stack of books, A small potted plant, Pencils in a cup, Floating paper/sticky-note doodles, Soft cloud shapes, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the Lenovo Idea Tab Pro "Create More, Achieve More" identity below.
+Maintain: a soft pastel sky-blue and powder-blue color grade with clean white cloud-like highlights as the dominant color story across the whole image.
+Background characteristics: Clean, productive and professional mood — bright, airy and inspiring. Premium and polished. Consistent with the Lenovo Idea Tab Pro "Create More, Achieve More" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
 IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
 Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
@@ -741,10 +741,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a warm cream/ivory background with a few large soft organic blob shapes in pastel pink and sky-blue, plus scattered small doodle elements — a tiny paper airplane, small star outlines, thin circle outlines — floating around with generous open negative space.
-Maintain: warm cream/ivory as the base, with playful pastel pink, sky-blue and soft-yellow accent blobs, as the dominant color story across the whole image.
-Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Lite "Fun Made Easy" campaign look.
-Add: A small paper-airplane doodle, Tiny star outline doodles, Thin circle outlines, Soft organic blob shapes, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Lite "Fun Made Easy" identity below.
+Maintain: a warm cream/ivory color grade with playful pastel pink, sky-blue and soft-yellow accents as the dominant color story across the whole image.
+Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Consistent with the MotoPad 60 Lite "Fun Made Easy" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
 IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
 Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -760,10 +760,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a warm cream/ivory background with a few large soft organic blob shapes in pastel pink and sky-blue, plus scattered small doodle elements — a tiny paper airplane, small star outlines, thin circle outlines — floating around with generous open negative space.
-Maintain: warm cream/ivory as the base, with playful pastel pink, sky-blue and soft-yellow accent blobs, as the dominant color story across the whole image.
-Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Lite "Fun Made Easy" campaign look.
-Add: A small paper-airplane doodle, Tiny star outline doodles, Thin circle outlines, Soft organic blob shapes, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Lite "Fun Made Easy" identity below.
+Maintain: a warm cream/ivory color grade with playful pastel pink, sky-blue and soft-yellow accents as the dominant color story across the whole image.
+Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Consistent with the MotoPad 60 Lite "Fun Made Easy" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
 IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
 Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -779,10 +779,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a warm cream/ivory background with a few large soft organic blob shapes in pastel pink and sky-blue, plus scattered small doodle elements — a tiny paper airplane, small star outlines, thin circle outlines — floating around with generous open negative space.
-Maintain: warm cream/ivory as the base, with playful pastel pink, sky-blue and soft-yellow accent blobs, as the dominant color story across the whole image.
-Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Lite "Fun Made Easy" campaign look.
-Add: A small paper-airplane doodle, Tiny star outline doodles, Thin circle outlines, Soft organic blob shapes, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Lite "Fun Made Easy" identity below.
+Maintain: a warm cream/ivory color grade with playful pastel pink, sky-blue and soft-yellow accents as the dominant color story across the whole image.
+Background characteristics: Light, playful and easygoing mood — minimal, cheerful and fun. Premium and polished. Consistent with the MotoPad 60 Lite "Fun Made Easy" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
 IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
 Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
@@ -805,10 +805,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a fresh green outdoor scene — rolling grassy hills, a winding dirt path with a simple bicycle resting on it, small wildflowers scattered in the foreground, soft rounded trees, and gentle clouds in a pale sky.
-Maintain: fresh spring green and sky blue with soft white cloud accents as the dominant color story across the whole image.
-Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Neo "Good Days, Every Day" campaign look.
-Add: A bicycle, A winding path, Small wildflowers, Rolling hills, Soft round trees, Gentle clouds, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Neo "Good Days, Every Day" identity below.
+Maintain: a fresh spring-green and sky-blue color grade with soft white cloud-toned highlights as the dominant color story across the whole image.
+Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Consistent with the MotoPad 60 Neo "Good Days, Every Day" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
 IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
 Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -824,10 +824,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a fresh green outdoor scene — rolling grassy hills, a winding dirt path with a simple bicycle resting on it, small wildflowers scattered in the foreground, soft rounded trees, and gentle clouds in a pale sky.
-Maintain: fresh spring green and sky blue with soft white cloud accents as the dominant color story across the whole image.
-Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Neo "Good Days, Every Day" campaign look.
-Add: A bicycle, A winding path, Small wildflowers, Rolling hills, Soft round trees, Gentle clouds, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Neo "Good Days, Every Day" identity below.
+Maintain: a fresh spring-green and sky-blue color grade with soft white cloud-toned highlights as the dominant color story across the whole image.
+Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Consistent with the MotoPad 60 Neo "Good Days, Every Day" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
 IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
 Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -843,10 +843,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a fresh green outdoor scene — rolling grassy hills, a winding dirt path with a simple bicycle resting on it, small wildflowers scattered in the foreground, soft rounded trees, and gentle clouds in a pale sky.
-Maintain: fresh spring green and sky blue with soft white cloud accents as the dominant color story across the whole image.
-Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Clean composition. Consistent with the official MotoPad 60 Neo "Good Days, Every Day" campaign look.
-Add: A bicycle, A winding path, Small wildflowers, Rolling hills, Soft round trees, Gentle clouds, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Neo "Good Days, Every Day" identity below.
+Maintain: a fresh spring-green and sky-blue color grade with soft white cloud-toned highlights as the dominant color story across the whole image.
+Background characteristics: Fresh, natural and optimistic mood — relaxed and outdoorsy. Premium and polished. Consistent with the MotoPad 60 Neo "Good Days, Every Day" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
 IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
 Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
@@ -869,10 +869,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bold abstract premium studio scene — sweeping ribbons of purple-to-magenta-to-blue gradient light, a glossy faceted crystal/gem shape and a reflective sphere as accent props, resting on a glossy podium-like surface with a soft reflection beneath.
-Maintain: a bold jewel-tone gradient of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
-Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Clean composition. Consistent with the official MotoPad 60 Pro "Bold Days, Best You" campaign look.
-Add: A faceted glass/crystal shape, A glossy reflective sphere, A reflective podium surface, Sweeping gradient light ribbons, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Pro "Bold Days, Best You" identity below.
+Maintain: a bold jewel-tone color grade of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
+Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Consistent with the MotoPad 60 Pro "Bold Days, Best You" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
 IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
 Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -888,10 +888,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bold abstract premium studio scene — sweeping ribbons of purple-to-magenta-to-blue gradient light, a glossy faceted crystal/gem shape and a reflective sphere as accent props, resting on a glossy podium-like surface with a soft reflection beneath.
-Maintain: a bold jewel-tone gradient of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
-Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Clean composition. Consistent with the official MotoPad 60 Pro "Bold Days, Best You" campaign look.
-Add: A faceted glass/crystal shape, A glossy reflective sphere, A reflective podium surface, Sweeping gradient light ribbons, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Pro "Bold Days, Best You" identity below.
+Maintain: a bold jewel-tone color grade of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
+Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Consistent with the MotoPad 60 Pro "Bold Days, Best You" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
 IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
 Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
@@ -907,10 +907,10 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
 OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference only as a loose secondary cue for lighting direction — the primary visual environment must be this: a bold abstract premium studio scene — sweeping ribbons of purple-to-magenta-to-blue gradient light, a glossy faceted crystal/gem shape and a reflective sphere as accent props, resting on a glossy podium-like surface with a soft reflection beneath.
-Maintain: a bold jewel-tone gradient of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
-Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Clean composition. Consistent with the official MotoPad 60 Pro "Bold Days, Best You" campaign look.
-Add: A faceted glass/crystal shape, A glossy reflective sphere, A reflective podium surface, Sweeping gradient light ribbons, Subtle depth of field, Soft ambient glow
+BACKGROUND: Use the uploaded background reference as the actual visual environment for this shot — it is the real backdrop, not a mood board to be replaced or ignored. Keep its own content, layout and composition intact; render it as a natural, photographically real scene (never a flat illustration/clip-art copy). Grade its lighting, shadows and color palette toward the MotoPad 60 Pro "Bold Days, Best You" identity below.
+Maintain: a bold jewel-tone color grade of deep purple, magenta, hot pink and royal blue as the dominant color story across the whole image.
+Background characteristics: Premium, bold and dramatic mood — confident and high-end. Polished and glossy. Consistent with the MotoPad 60 Pro "Bold Days, Best You" color and lighting identity.
+Add: Subtle depth of field, Soft ambient glow
 SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
 IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
 Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
