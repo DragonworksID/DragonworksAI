@@ -376,6 +376,153 @@ LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natur
 QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
     },
   },
+  // ── LEGO Indonesia presets ─────────────────────────────────
+  // Same talent/product split as the Universal presets above, but locked to
+  // LEGO Indonesia's brand system (brick colors, yellow/red/yellow banner
+  // stack, toy-commercial lighting). LEGO-P is the brief as given; LEGO-S
+  // and LEGO-SP are derived from it the same way Lenovo-P/Universal-P were
+  // derived from their SP counterparts. Same provider-sharing note as
+  // Universal: no separately-tuned Gemini scaffold yet.
+  {
+    id: 'lego-s',
+    brand: 'LEGO-S',
+    templates: {
+      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
+INPUTS: Cover photo (talent/subject) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference as the primary visual environment.
+Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
+Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
+Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
+SUBJECT TREATMENT: Keep the original person/talent recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
+Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Large bold rounded display font.
+Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
+TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
+COMPOSITION: Visual hierarchy: Headline Face Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
+STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
+      openai: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
+INPUTS: Cover photo (talent/subject) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference as the primary visual environment.
+Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
+Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
+Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
+SUBJECT TREATMENT: Keep the original person/talent recognizable.
+IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
+Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Large bold rounded display font.
+Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
+TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
+COMPOSITION: Visual hierarchy: Headline Face Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
+STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
+    },
+  },
+  {
+    id: 'lego-p',
+    brand: 'LEGO-P',
+    templates: {
+      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
+INPUTS: Cover photo (LEGO product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference as the primary visual environment.
+Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
+Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
+Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
+SUBJECT TREATMENT: Keep the original product recognizable.
+IMPORTANT: Preserve product identity.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
+Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Large bold rounded display font.
+Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
+TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
+COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
+STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
+      openai: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
+INPUTS: Cover photo (LEGO product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference as the primary visual environment.
+Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
+Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
+Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
+SUBJECT TREATMENT: Keep the original product recognizable.
+IMPORTANT: Preserve product identity.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
+Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Large bold rounded display font.
+Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
+TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
+COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
+STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
+    },
+  },
+  {
+    id: 'lego-sp',
+    brand: 'LEGO-SP',
+    templates: {
+      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
+INPUTS: Cover photo (talent + LEGO product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference as the primary visual environment.
+Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
+Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
+Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
+SUBJECT TREATMENT: Keep the original person and the LEGO product both recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, and branding — no invented or altered product details.
+Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
+PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
+Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Large bold rounded display font.
+Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
+TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
+COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
+STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
+      openai: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
+INPUTS: Cover photo (talent + LEGO product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference as the primary visual environment.
+Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
+Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
+Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
+SUBJECT TREATMENT: Keep the original person and the LEGO product both recognizable.
+IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, and branding — no invented or altered product details.
+Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
+PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
+Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Large bold rounded display font.
+Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
+TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
+COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
+STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
+    },
+  },
 ]
 
 export default function ThumbnailCreator() {
