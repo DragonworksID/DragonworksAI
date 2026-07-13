@@ -389,8 +389,14 @@ def gemini_generate(prompt: str, ref_bytes: Optional[bytes] = None,
 
 def gemini_generate_thumbnail(prompt: str,
                               bg_bytes: bytes, bg_mime: str,
-                              base_bytes: bytes, base_mime: str) -> bytes:
-    """Composite a thumbnail from a background photo + base (talent) photo."""
+                              base_bytes: bytes, base_mime: str,
+                              extra_base_images: Optional[list] = None) -> bytes:
+    """
+    Composite a thumbnail from a background photo + base (talent/product)
+    photo. `extra_base_images` (optional list of (bytes, mime) tuples) are
+    additional product photos for "Multiple Product Reference" mode — e.g.
+    LEGO MultiP, which merges several products into one shot.
+    """
     from google import genai
     from google.genai import types
 
@@ -402,15 +408,20 @@ def gemini_generate_thumbnail(prompt: str,
     # etc.) comes entirely from `prompt`, which differs between the default
     # auto-built flow and a brand preset. Baking instructions into the
     # captions would silently override/contradict whatever a preset says.
+    contents = [
+        types.Part(text="BACKGROUND PHOTO (image 1):"),
+        types.Part(inline_data=types.Blob(data=bg_bytes, mime_type=bg_mime)),
+        types.Part(text="BASE PHOTO (image 2):"),
+        types.Part(inline_data=types.Blob(data=base_bytes, mime_type=base_mime)),
+    ]
+    for i, (extra_bytes, extra_mime) in enumerate(extra_base_images or []):
+        contents.append(types.Part(text=f"ADDITIONAL PRODUCT PHOTO (image {i + 3}):"))
+        contents.append(types.Part(inline_data=types.Blob(data=extra_bytes, mime_type=extra_mime)))
+    contents.append(types.Part(text=prompt))
+
     response = client.models.generate_content(
         model=GEMINI_IMAGE_MODEL,
-        contents=[
-            types.Part(text="BACKGROUND PHOTO (image 1):"),
-            types.Part(inline_data=types.Blob(data=bg_bytes, mime_type=bg_mime)),
-            types.Part(text="BASE PHOTO (image 2):"),
-            types.Part(inline_data=types.Blob(data=base_bytes, mime_type=base_mime)),
-            types.Part(text=prompt),
-        ],
+        contents=contents,
         config=types.GenerateContentConfig(
             response_modalities=["TEXT", "IMAGE"]
         ),
@@ -451,10 +462,14 @@ def _normalize_image_for_openai(data: bytes) -> bytes:
 def openai_generate_thumbnail(prompt: str,
                               bg_bytes: bytes, bg_mime: str,
                               base_bytes: bytes, base_mime: str,
-                              quality: str = None) -> bytes:
+                              quality: str = None,
+                              extra_base_images: Optional[list] = None) -> bytes:
     """
     Composite a thumbnail from a background/style photo + subject/product
-    photo using OpenAI's image models.
+    photo using OpenAI's image models. `extra_base_images` (optional list of
+    (bytes, mime) tuples) are additional product photos for "Multiple
+    Product Reference" mode — e.g. LEGO MultiP, which merges several
+    products into one shot.
 
     Two call paths, controlled by OPENAI_USE_RESPONSES_API:
 
@@ -473,8 +488,14 @@ def openai_generate_thumbnail(prompt: str,
       pixels rather than generate a new composition from references.
     """
     if OPENAI_USE_RESPONSES_API:
-        return _openai_generate_thumbnail_responses(prompt, bg_bytes, bg_mime, base_bytes, base_mime, quality)
-    return _openai_generate_thumbnail_edit(prompt, bg_bytes, bg_mime, base_bytes, base_mime, quality)
+        return _openai_generate_thumbnail_responses(
+            prompt, bg_bytes, bg_mime, base_bytes, base_mime, quality,
+            extra_base_images=extra_base_images,
+        )
+    return _openai_generate_thumbnail_edit(
+        prompt, bg_bytes, bg_mime, base_bytes, base_mime, quality,
+        extra_base_images=extra_base_images,
+    )
 
 
 def _normalized_quality(quality: str) -> str:
@@ -487,7 +508,8 @@ def _normalized_quality(quality: str) -> str:
 def _openai_generate_thumbnail_responses(prompt: str,
                                          bg_bytes: bytes, bg_mime: str,
                                          base_bytes: bytes, base_mime: str,
-                                         quality: str = None) -> bytes:
+                                         quality: str = None,
+                                         extra_base_images: Optional[list] = None) -> bytes:
     """Generate via the Responses API's image_generation tool (action="generate")."""
     import base64 as _b64
     from openai import OpenAI
@@ -498,6 +520,7 @@ def _openai_generate_thumbnail_responses(prompt: str,
     try:
         bg_png   = _normalize_image_for_openai(bg_bytes)
         base_png = _normalize_image_for_openai(base_bytes)
+        extra_pngs = [_normalize_image_for_openai(b) for b, _m in (extra_base_images or [])]
     except Exception as e:
         raise RuntimeError(
             f"Couldn't read one of the uploaded photos as an image ({e}). "
@@ -507,28 +530,37 @@ def _openai_generate_thumbnail_responses(prompt: str,
     def _data_url(data: bytes) -> str:
         return f"data:image/png;base64,{_b64.b64encode(data).decode()}"
 
+    content = [
+        {"type": "input_text", "text": prompt},
+        {
+            "type": "input_text",
+            "text": "SUBJECT / PRODUCT REFERENCE — keep this recognizable "
+                     "(face/shape/branding), everything else about the scene "
+                     "around it is yours to reimagine:",
+        },
+        {"type": "input_image", "image_url": _data_url(base_png)},
+    ]
+    for i, extra_png in enumerate(extra_pngs):
+        content.append({
+            "type": "input_text",
+            "text": f"ADDITIONAL PRODUCT REFERENCE #{i + 2} — also keep this recognizable "
+                     "(shape/branding) and merge it into the same shot as the reference above:",
+        })
+        content.append({"type": "input_image", "image_url": _data_url(extra_png)})
+    content.append({
+        "type": "input_text",
+        "text": "MOOD & STYLE REFERENCE — a color/mood board only, NOT a "
+                 "layout to copy. Draw inspiration from its colors and "
+                 "playful motifs, then invent a real photographed scene:",
+    })
+    content.append({"type": "input_image", "image_url": _data_url(bg_png)})
+
     response = client.responses.create(
         model=OPENAI_RESPONSES_MODEL,
         input=[
             {
                 "role": "user",
-                "content": [
-                    {"type": "input_text", "text": prompt},
-                    {
-                        "type": "input_text",
-                        "text": "SUBJECT / PRODUCT REFERENCE — keep this recognizable "
-                                 "(face/shape/branding), everything else about the scene "
-                                 "around it is yours to reimagine:",
-                    },
-                    {"type": "input_image", "image_url": _data_url(base_png)},
-                    {
-                        "type": "input_text",
-                        "text": "MOOD & STYLE REFERENCE — a color/mood board only, NOT a "
-                                 "layout to copy. Draw inspiration from its colors and "
-                                 "playful motifs, then invent a real photographed scene:",
-                    },
-                    {"type": "input_image", "image_url": _data_url(bg_png)},
-                ],
+                "content": content,
             }
         ],
         tools=[{
@@ -556,7 +588,8 @@ def _openai_generate_thumbnail_responses(prompt: str,
 def _openai_generate_thumbnail_edit(prompt: str,
                                     bg_bytes: bytes, bg_mime: str,
                                     base_bytes: bytes, base_mime: str,
-                                    quality: str = None) -> bytes:
+                                    quality: str = None,
+                                    extra_base_images: Optional[list] = None) -> bytes:
     """Legacy path: raw images.edit call. Kept only for A/B comparison / rollback."""
     import io
     from openai import OpenAI
@@ -567,6 +600,7 @@ def _openai_generate_thumbnail_edit(prompt: str,
     try:
         bg_png   = _normalize_image_for_openai(bg_bytes)
         base_png = _normalize_image_for_openai(base_bytes)
+        extra_pngs = [_normalize_image_for_openai(b) for b, _m in (extra_base_images or [])]
     except Exception as e:
         raise RuntimeError(
             f"Couldn't read one of the uploaded photos as an image ({e}). "
@@ -577,10 +611,15 @@ def _openai_generate_thumbnail_edit(prompt: str,
     bg_file.name = "background.png"
     base_file = io.BytesIO(base_png)
     base_file.name = "base.png"
+    extra_files = []
+    for i, extra_png in enumerate(extra_pngs):
+        f = io.BytesIO(extra_png)
+        f.name = f"product_{i + 2}.png"
+        extra_files.append(f)
 
     result = client.images.edit(
         model=OPENAI_IMAGE_MODEL,
-        image=[base_file, bg_file],
+        image=[base_file, *extra_files, bg_file],
         prompt=prompt,
         size="1024x1536",
         quality=quality,
@@ -1042,6 +1081,10 @@ async def generate_thumbnail(
     preserve_face: str = Form("0"),   # "1"/"0" — appends FACE_LOCK_SNIPPET, off by default
     background_image: UploadFile = File(...),
     base_image:       UploadFile = File(...),
+    # "Multiple Product Reference" mode — additional product photos beyond
+    # `base_image`, sent when the frontend's checkbox is on (e.g. LEGO
+    # MultiP, which merges several products into one shot). Empty by default.
+    extra_product_images: List[UploadFile] = File(default=[]),
 ):
     provider = (provider or DEFAULT_IMAGE_PROVIDER).strip().lower()
     if provider not in ("gemini", "openai"):
@@ -1062,6 +1105,12 @@ async def generate_thumbnail(
 
     bg_mime   = background_image.content_type or "image/jpeg"
     base_mime = base_image.content_type or "image/jpeg"
+
+    extra_images = []
+    for extra in extra_product_images or []:
+        extra_bytes = await extra.read()
+        if extra_bytes:
+            extra_images.append((extra_bytes, extra.content_type or "image/jpeg"))
 
     # Gemini and OpenAI get different prompt treatment on purpose:
     #
@@ -1154,12 +1203,14 @@ async def generate_thumbnail(
                 bg_bytes,  bg_mime,
                 base_bytes, base_mime,
                 quality=quality,
+                extra_base_images=extra_images,
             )
         else:
             img_bytes = gemini_generate_thumbnail(
                 prompt,
                 bg_bytes,  bg_mime,
                 base_bytes, base_mime,
+                extra_base_images=extra_images,
             )
     except Exception as e:
         raise HTTPException(500, detail=str(e))

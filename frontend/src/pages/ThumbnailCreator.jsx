@@ -523,6 +523,58 @@ STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok v
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
     },
   },
+  {
+    // "MultiP" — multiple LEGO products merged into a single shot. Pairs
+    // with the "Multiple Product Reference" checkbox above the Reference
+    // Images upload boxes: when that's on, every filled product slot gets
+    // sent along with this preset so the model has all of them to combine.
+    id: 'lego-multip',
+    brand: 'LEGO-MultiP',
+    templates: {
+      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia. Combine these two products into one image.
+INPUTS: Cover photo (LEGO product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference as the primary visual environment.
+Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO. DO NOT ADD THE TALENT OR PERSON, STRICTLY PRODUCT ONLY.
+Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
+Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
+PRODUCT TREATMENT: Keep the original product recognizable. Merge all of the product images into one.
+IMPORTANT: Preserve product identity. Maintain the table the products is on.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
+Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Large bold rounded display font.
+Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
+TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
+COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
+STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
+      openai: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia. Combine these two products into one image.
+INPUTS: Cover photo (LEGO product) + Background reference image
+Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
+OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
+BACKGROUND: Use the uploaded background reference as the primary visual environment.
+Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO. DO NOT ADD THE TALENT OR PERSON, STRICTLY PRODUCT ONLY.
+Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
+Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
+PRODUCT TREATMENT: Keep the original product recognizable. Merge all of the product images into one.
+IMPORTANT: Preserve product identity. Maintain the table the products is on.
+Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
+PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
+Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
+HEADLINE: {{HEADLINE}}
+TYPOGRAPHY: Large bold rounded display font.
+Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
+TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
+COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
+LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
+STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
+QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
+    },
+  },
 ]
 
 // ── Lenovo Themes ────────────────────────────────────────────
@@ -1031,6 +1083,18 @@ export default function ThumbnailCreator() {
 
   const [bgImage, setBgImage]     = useState(null)   // { file, preview } — campaign background
   const [baseImage, setBaseImage] = useState(null)   // { file, preview } — talent photo
+  // "Multiple Product Reference" — off by default. When on, the single
+  // Subject / Product Reference box below is replaced by up to 4 optional
+  // product slots, for presets (like LEGO MultiP) that merge several
+  // products into one shot. The first filled slot becomes `base_image`
+  // (same as today); any additional filled slots ride along as
+  // `extra_product_images`.
+  const [useMultiProduct, setUseMultiProduct] = useState(false)
+  const [productImages, setProductImages] = useState([null, null, null, null])
+
+  function setProductImageAt(i, value) {
+    setProductImages(prev => prev.map((v, idx) => (idx === i ? value : v)))
+  }
   const [headline, setHeadline]   = useState('')
   const [notes, setNotes]         = useState('')
   const [presetPrompt, setPresetPrompt]     = useState('')   // filled preset text, overrides notes when set
@@ -1066,7 +1130,11 @@ export default function ThumbnailCreator() {
   }
 
   async function handleGenerate() {
-    if (!baseImage?.file) { showToast('Please upload the Subject / Product Reference photo.'); return }
+    // In Multiple Product Reference mode, the first filled product slot
+    // stands in for the usual single Subject / Product Reference upload;
+    // any further filled slots go along as extra product images.
+    const primaryProductFile = useMultiProduct ? productImages[0]?.file : baseImage?.file
+    if (!primaryProductFile) { showToast('Please upload the Subject / Product Reference photo.'); return }
     if (!bgImage?.file)  { showToast('Please upload the Mood & Style Reference photo.'); return }
     if (!headline.trim()) { showToast('Please enter the Headline text.'); return }
     setLoading(true)
@@ -1082,7 +1150,10 @@ export default function ThumbnailCreator() {
     }
     fd.append('preserve_face', preserveFace ? '1' : '0')
     fd.append('background_image', bgImage.file)
-    fd.append('base_image', baseImage.file)
+    fd.append('base_image', primaryProductFile)
+    if (useMultiProduct) {
+      productImages.slice(1).forEach(img => { if (img?.file) fd.append('extra_product_images', img.file) })
+    }
     if (presetPrompt.trim()) {
       fd.append('custom_prompt', presetPrompt)
     } else {
@@ -1126,6 +1197,8 @@ export default function ThumbnailCreator() {
   function handleReset() {
     setBgImage(null)
     setBaseImage(null)
+    setUseMultiProduct(false)
+    setProductImages([null, null, null, null])
     setHeadline('')
     setNotes('')
     setPresetPrompt('')
@@ -1222,15 +1295,55 @@ export default function ThumbnailCreator() {
               Reference Images
             </div>
             <div className="form-grid">
-              <UploadBox
-                label="Subject / Product Reference"
-                hint="Who or what must stay recognizable"
-                icon="🧑"
-                image={baseImage}
-                onSelect={setBaseImage}
-                minHeight={150}
-                previewMaxHeight={150}
-              />
+              <div>
+                {!useMultiProduct ? (
+                  <UploadBox
+                    label="Subject / Product Reference"
+                    hint="Who or what must stay recognizable"
+                    icon="🧑"
+                    image={baseImage}
+                    onSelect={setBaseImage}
+                    minHeight={150}
+                    previewMaxHeight={150}
+                  />
+                ) : (
+                  <div>
+                    <div className="form-label" style={{ marginBottom: 6 }}>Product References</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      {productImages.map((img, i) => (
+                        <UploadBox
+                          key={i}
+                          label={`Product ${i + 1}`}
+                          hint={i === 0 ? 'At least one product required' : 'Optional'}
+                          icon="📦"
+                          image={img}
+                          onSelect={val => setProductImageAt(i, val)}
+                          required={false}
+                          minHeight={110}
+                          previewMaxHeight={110}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={useMultiProduct}
+                      onChange={e => setUseMultiProduct(e.target.checked)}
+                    />
+                    <span className="form-label" style={{ margin: 0 }}>Multiple Product Reference</span>
+                  </label>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 6 }}>
+                    {useMultiProduct
+                      ? 'On: upload up to 4 separate product photos — used with presets (like LEGO MultiP) that merge several products into one shot.'
+                      : 'Off: uses a single Subject / Product Reference photo, as usual.'}
+                  </div>
+                </div>
+              </div>
+
               <UploadBox
                 label="Mood & Style Reference"
                 hint="Colors, vibe, and creative direction to draw from"
