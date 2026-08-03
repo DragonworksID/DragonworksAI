@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useHistory } from '../App.jsx'
 import UploadBox from '../UploadBox.jsx'
+import { apiFetch } from '../api.js'
 
 const EXAMPLES = [
   'World Cup 2026 themed live streaming background with stadium lights and confetti, transparent product display area, festival mood',
@@ -28,7 +29,7 @@ export default function QuickGenerate() {
     if (refImage?.file) fd.append('reference_image', refImage.file)
 
     try {
-      const res  = await fetch('/api/quick-generate', { method: 'POST', body: fd })
+      const res  = await apiFetch('/api/quick-generate', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Generation failed')
 
@@ -83,6 +84,7 @@ export default function QuickGenerate() {
               placeholder="Describe the image you want to generate in detail…&#10;&#10;e.g. World Cup 2026 themed live streaming background with stadium lights, confetti, and a transparent area for product placement. Festival mood, vibrant colors."
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
+              maxLength={12000}
               rows={6}
             />
 

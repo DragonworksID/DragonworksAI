@@ -1,0 +1,5 @@
+[tool.ruff.lint.per-file-ignores]
+# FastAPI requires File/Form calls in route defaults. Provider boundaries and
+# optional enrichment intentionally catch all SDK exceptions to sanitize them
+# or fall back safely. The long prompt strings are deliberately concatenated.
+"backend/main.py" = ["B008", "BLE001", "ISC004", "TRY004"]

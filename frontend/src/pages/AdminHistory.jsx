@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
+import { apiFetch } from '../api.js'
 
 export default function AdminHistory() {
   const [entries, setEntries] = useState(null)   // null = loading
   const [error, setError]     = useState('')
 
   useEffect(() => {
-    fetch('/api/admin/history')
+    apiFetch('/api/admin/history')
       .then(async res => {
         const data = await res.json()
         if (!res.ok) throw new Error(data.detail || 'Failed to load history')
@@ -29,8 +30,8 @@ export default function AdminHistory() {
         <div className="page-title-accent" />
         <div className="page-subtitle">
           Admin-only view of every generation across every account, most recent first, with who
-          generated it. Kept in server memory only (last 200) — it resets whenever the server
-          restarts or redeploys, same as everyone's personal History tab.
+          generated it. Kept in bounded server memory only — it resets whenever the server
+          restarts or redeploys.
         </div>
       </div>
 

@@ -6,9 +6,19 @@ services:
     # Installs the backend's Python deps, then builds the React frontend
     # into frontend/dist so the backend can serve it directly (see the
     # StaticFiles mount at the bottom of backend/main.py).
-    buildCommand: "pip install -r backend/requirements.txt && cd frontend && npm install && npm run build"
-    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install --no-cache-dir -r backend/requirements.txt && cd frontend && npm ci --no-audit --no-fund && npm run build"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT --no-server-header"
     envVars:
+      - key: APP_ENV
+        value: production
+      - key: AUTH_REQUIRED
+        value: "1"
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: NODE_VERSION
+        value: "24.14.1"
+      - key: PYTHON_VERSION
+        value: "3.14.3"
       # Set the actual values in the Render dashboard (Environment tab) —
       # `sync: false` just means "required, but don't store the value in
       # this file / git history".
@@ -16,12 +26,9 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      # Named team accounts — set the actual JSON value in the Render
-      # dashboard (Environment tab), NOT here. Leave blank ONLY if you're
-      # intentionally fine with the site being fully public with no login.
-      # Format: a JSON array of {"username","password","role"} objects,
-      # role is "user" or "admin", e.g.:
-      #   [{"username":"maria","password":"changeme1","role":"user"},
-      #    {"username":"admin","password":"changeme2","role":"admin"}]
+      # Named team accounts — set the JSON in Render, never in this file.
+      # AUTH_REQUIRED makes a missing or malformed value fail closed. Generate
+      # password_hash values with: python backend/hash_password.py
+      # Example: [{"username":"admin","password_hash":"pbkdf2_sha256$...","role":"admin"}]
       - key: APP_USERS
         sync: false

@@ -8,6 +8,7 @@ import ThumbnailCreator from './pages/ThumbnailCreator.jsx'
 import EditPhoto from './pages/EditPhoto.jsx'
 import History from './pages/History.jsx'
 import AdminHistory from './pages/AdminHistory.jsx'
+import { AUTH_EXPIRED_EVENT } from './api.js'
 
 // ── History context — shared across all pages ──────────────
 export const HistoryContext = createContext(null)
@@ -53,9 +54,23 @@ export default function App() {
       .finally(() => setAuthChecked(true))
   }, [])
 
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setCurrentUser(null)
+      setHistory([])
+      setEditPhotoRequest(null)
+      setPage('thumbnail')
+    }
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired)
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired)
+  }, [])
+
   async function logout() {
     try { await fetch('/api/logout', { method: 'POST' }) } catch { /* ignore */ }
     setCurrentUser(null)
+    setHistory([])
+    setEditPhotoRequest(null)
+    setPage('thumbnail')
   }
 
   const [page, setPage]       = useState('thumbnail')

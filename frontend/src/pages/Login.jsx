@@ -44,6 +44,8 @@ export default function Login({ onLoggedIn }) {
           <input
             className="form-input"
             autoFocus
+            autoComplete="username"
+            maxLength={128}
             value={username}
             onChange={e => setUsername(e.target.value)}
           />
@@ -54,6 +56,8 @@ export default function Login({ onLoggedIn }) {
           <input
             className="form-input"
             type="password"
+            autoComplete="current-password"
+            maxLength={1024}
             value={password}
             onChange={e => setPassword(e.target.value)}
           />

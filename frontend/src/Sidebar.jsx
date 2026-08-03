@@ -108,10 +108,11 @@ export default function Sidebar({ activePage, onNavigate, historyCount }) {
         <div className="app-version-card">
           <div className="app-version-label">App Version</div>
           <div className="app-version-row">
-            <span className="version-num">v1.0</span>
+            <span className="version-num">v1.1</span>
             <span className="pro-badge">INTERNAL</span>
           </div>
           <div className="version-date">Dragonworks AI Dept.</div>
+          <div className="version-date">Uploads are processed by the configured AI provider.</div>
         </div>
       </div>
     </aside>

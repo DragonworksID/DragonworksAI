@@ -1,29 +1,155 @@
 #!/usr/bin/env python3
-import os
+import asyncio
 import base64
+import binascii
+import hashlib
 import hmac
+import io
 import json
+import logging
+import os
 import secrets
+import threading
 import time
 import uuid
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List
 
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
-app = FastAPI(title="DragonworksAI", version="1.0.0")
+logger = logging.getLogger("dragonworksai")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(name: str, default: int, minimum: int, maximum: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return max(minimum, min(maximum, int(raw)))
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be an integer.") from exc
+
+
+IS_PRODUCTION = _env_flag("RENDER") or os.getenv("APP_ENV", "").strip().lower() == "production"
+EXPOSE_API_DOCS = _env_flag("EXPOSE_API_DOCS", default=not IS_PRODUCTION)
+AUTH_REQUIRED = _env_flag("AUTH_REQUIRED", default=IS_PRODUCTION)
+
+app = FastAPI(
+    title="DragonworksAI",
+    version="1.1.0",
+    docs_url="/docs" if EXPOSE_API_DOCS else None,
+    redoc_url="/redoc" if EXPOSE_API_DOCS else None,
+    openapi_url="/openapi.json" if EXPOSE_API_DOCS else None,
 )
+
+_cors_origins = [origin.strip() for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin.strip()]
+if "*" in _cors_origins:
+    raise RuntimeError("CORS_ORIGINS must contain exact origins; '*' is not allowed.")
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
+    )
+
+
+MAX_REQUEST_BODY_BYTES = _env_int("MAX_REQUEST_BODY_MB", 64, 1, 128) * 1024 * 1024
+
+
+class _RequestTooLarge(Exception):
+    pass
+
+
+class RequestBodyLimitMiddleware:
+    """Reject oversized API bodies, including chunked requests without a length."""
+
+    def __init__(self, app, max_bytes: int):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or not scope.get("path", "").startswith("/api/"):
+            return await self.app(scope, receive, send)
+
+        headers = dict(scope.get("headers") or [])
+        content_length = headers.get(b"content-length", b"").decode("ascii", "ignore")
+        if content_length:
+            try:
+                parsed_length = int(content_length)
+                if parsed_length < 0:
+                    raise ValueError
+                if parsed_length > self.max_bytes:
+                    response = JSONResponse(
+                        {"detail": "Request body is too large."},
+                        status_code=413,
+                        headers={"Connection": "close"},
+                    )
+                    return await response(scope, receive, send)
+            except ValueError:
+                response = JSONResponse({"detail": "Invalid Content-Length header."}, status_code=400)
+                return await response(scope, receive, send)
+
+        received = 0
+
+        async def limited_receive():
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_bytes:
+                    raise _RequestTooLarge
+            return message
+
+        try:
+            return await self.app(scope, limited_receive, send)
+        except _RequestTooLarge:
+            response = JSONResponse(
+                {"detail": "Request body is too large."},
+                status_code=413,
+                headers={"Connection": "close"},
+            )
+            return await response(scope, receive, send)
+
+
+app.add_middleware(RequestBodyLimitMiddleware, max_bytes=MAX_REQUEST_BODY_BYTES)
+
+
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+    )
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; "
+        "object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; font-src 'self'; connect-src 'self'"
+    )
+    if IS_PRODUCTION:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    return response
 
 # ── Named-account login gate ─────────────────────────────────────────────
 # This app calls paid Gemini/OpenAI APIs on every generation. Once deployed
@@ -31,57 +157,143 @@ app.add_middleware(
 # on your account's bill — so every /api/* route (other than login/health)
 # requires a logged-in session.
 #
-# Accounts are configured via the APP_USERS environment variable — a JSON
-# array of {"username", "password", "role"} objects, e.g.:
-#   [{"username":"maria","password":"changeme1","role":"user"},
-#    {"username":"admin","password":"changeme2","role":"admin"}]
+# Accounts are configured via APP_USERS as a JSON array containing username,
+# password_hash, and role. Run backend/hash_password.py to create each hash.
 # "role" is "user" (default) or "admin". Admin accounts can see every user's
 # generation history (who generated what) via /api/admin/history — regular
 # "user" accounts only see their own browser's history, same as today.
 #
-# Leave APP_USERS unset/empty and the whole gate is skipped — that's what
-# keeps local dev (`uvicorn main:app`) working with no login prompt.
+# Local development can leave APP_USERS unset when AUTH_REQUIRED=0. Production
+# defaults to AUTH_REQUIRED=1 and fails startup if account configuration is
+# absent or malformed, so paid endpoints can never become public by accident.
 #
 # NOTE: sessions and the admin history log below are held in memory only
 # (no database) — both reset whenever the server restarts or redeploys,
 # same as the rest of this app's history. That keeps this free to run.
-APP_USERS_ENV     = os.getenv("APP_USERS", "")
-SESSION_COOKIE     = "dw_session"
-SESSION_MAX_AGE_S  = 60 * 60 * 24 * 14   # 14 days
-# Modern browsers treat http://localhost as secure enough for "Secure"
-# cookies, so this defaults on (matches Render's https in production). If a
-# local test ever shows the session not sticking (e.g. testing via
-# http://127.0.0.1 instead of http://localhost in an older browser), set
-# COOKIE_SECURE=0 in your local environment to work around it.
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "1") != "0"
+APP_USERS_ENV = os.getenv("APP_USERS", "")
+SESSION_MAX_AGE_S = _env_int("SESSION_MAX_AGE_HOURS", 8, 1, 24 * 30) * 60 * 60
+# Secure, host-only cookies are mandatory by default in production. Local HTTP
+# development uses the unprefixed cookie unless COOKIE_SECURE=1 is requested.
+COOKIE_SECURE = _env_flag("COOKIE_SECURE", default=IS_PRODUCTION)
+SESSION_COOKIE = "__Host-dw_session" if COOKIE_SECURE else "dw_session"
+SESSION_MAX_COUNT = _env_int("SESSION_MAX_COUNT", 500, 10, 5000)
+PASSWORD_HASH_ITERATIONS = 600_000
+ALLOW_LEGACY_PLAINTEXT_PASSWORDS = _env_flag(
+    "ALLOW_LEGACY_PLAINTEXT_PASSWORDS", default=not IS_PRODUCTION
+)
+
+
+def _b64_no_padding(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
+
+
+def _b64_with_padding(value: str) -> bytes:
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def hash_password(password: str, *, iterations: int = PASSWORD_HASH_ITERATIONS) -> str:
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+    return f"pbkdf2_sha256${iterations}${_b64_no_padding(salt)}${_b64_no_padding(digest)}"
+
+
+def _password_hash_is_valid(encoded: str) -> bool:
+    try:
+        algorithm, raw_iterations, raw_salt, raw_digest = encoded.split("$", 3)
+        iterations = int(raw_iterations)
+        return (
+            algorithm == "pbkdf2_sha256"
+            and 100_000 <= iterations <= 2_000_000
+            and len(_b64_with_padding(raw_salt)) == 16
+            and len(_b64_with_padding(raw_digest)) == 32
+        )
+    except (TypeError, ValueError, binascii.Error):
+        return False
+
+
+def _verify_password(password: str, encoded: str) -> bool:
+    try:
+        _algorithm, raw_iterations, raw_salt, raw_digest = encoded.split("$", 3)
+        iterations = int(raw_iterations)
+        if not _password_hash_is_valid(encoded):
+            return False
+        salt = _b64_with_padding(raw_salt)
+        expected = _b64_with_padding(raw_digest)
+        actual = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+        return hmac.compare_digest(actual, expected)
+    except (TypeError, ValueError, binascii.Error):
+        return False
 
 
 def _load_app_users():
     raw = APP_USERS_ENV.strip()
     if not raw:
+        if AUTH_REQUIRED:
+            raise RuntimeError("AUTH_REQUIRED is enabled but APP_USERS is empty.")
         return []
     try:
         parsed = json.loads(raw)
     except Exception as e:
-        print(f"[auth] APP_USERS is set but isn't valid JSON ({e}) — login gate disabled.")
-        return []
+        raise RuntimeError("APP_USERS must be a valid JSON array.") from e
+    if not isinstance(parsed, list):
+        raise RuntimeError("APP_USERS must be a JSON array.")
+
     users = []
-    for u in parsed if isinstance(parsed, list) else []:
-        if not isinstance(u, dict) or not u.get("username") or not u.get("password"):
-            continue
+    usernames = set()
+    for index, u in enumerate(parsed):
+        if not isinstance(u, dict):
+            raise RuntimeError(f"APP_USERS entry {index + 1} must be an object.")
+        username = str(u.get("username", "")).strip()
+        if not username or len(username) > 128:
+            raise RuntimeError(f"APP_USERS entry {index + 1} has an invalid username.")
+        if username in usernames:
+            raise RuntimeError(f"APP_USERS contains duplicate username '{username}'.")
+
+        encoded = str(u.get("password_hash", "")).strip()
+        if encoded and not _password_hash_is_valid(encoded):
+            raise RuntimeError(f"APP_USERS entry {index + 1} has an invalid password_hash.")
+        if not encoded:
+            legacy_password = u.get("password")
+            if not isinstance(legacy_password, str) or not legacy_password:
+                raise RuntimeError(f"APP_USERS entry {index + 1} needs password_hash.")
+            if len(legacy_password) < 12:
+                raise RuntimeError(
+                    f"APP_USERS entry {index + 1} uses a legacy plaintext password shorter than 12 characters."
+                )
+            if not ALLOW_LEGACY_PLAINTEXT_PASSWORDS:
+                raise RuntimeError(
+                    f"APP_USERS entry {index + 1} uses legacy plaintext 'password'. "
+                    "Generate password_hash with backend/hash_password.py."
+                )
+            encoded = hash_password(legacy_password)
+            logger.warning(
+                "APP_USERS entry %s uses legacy plaintext 'password'; migrate it to 'password_hash'.",
+                index + 1,
+            )
+
         role = str(u.get("role", "user")).strip().lower()
+        if role not in ("user", "admin"):
+            raise RuntimeError(f"APP_USERS entry {index + 1} has an invalid role.")
         users.append({
-            "username": str(u["username"]),
-            "password": str(u["password"]),
-            "role": role if role in ("user", "admin") else "user",
+            "username": username,
+            "password_hash": encoded,
+            "role": role,
         })
+        usernames.add(username)
+
+    if AUTH_REQUIRED and not users:
+        raise RuntimeError("AUTH_REQUIRED is enabled but APP_USERS contains no valid accounts.")
     return users
 
 
 APP_USERS = _load_app_users()
+APP_USERS_ENV = ""
+os.environ.pop("APP_USERS", None)
+_DUMMY_PASSWORD_HASH = hash_password(secrets.token_urlsafe(32))
 
 # token -> {"username", "role", "created"} — in-memory only, see note above.
 SESSIONS = {}
+_SESSION_LOCK = threading.Lock()
 
 
 def _find_user(username: str):
@@ -92,20 +304,29 @@ def _find_user(username: str):
 
 
 def _create_session(user: dict) -> str:
-    token = secrets.token_urlsafe(32)
-    SESSIONS[token] = {"username": user["username"], "role": user["role"], "created": time.time()}
+    with _SESSION_LOCK:
+        now = time.time()
+        expired = [token for token, session in SESSIONS.items() if now - session["created"] > SESSION_MAX_AGE_S]
+        for token in expired:
+            SESSIONS.pop(token, None)
+        while len(SESSIONS) >= SESSION_MAX_COUNT:
+            oldest = min(SESSIONS, key=lambda token: SESSIONS[token]["created"])
+            SESSIONS.pop(oldest, None)
+        token = secrets.token_urlsafe(32)
+        SESSIONS[token] = {"username": user["username"], "role": user["role"], "created": now}
     return token
 
 
 def _session_from_request(request: Request):
     token = request.cookies.get(SESSION_COOKIE, "")
-    session = SESSIONS.get(token)
-    if not session:
-        return None
-    if time.time() - session["created"] > SESSION_MAX_AGE_S:
-        SESSIONS.pop(token, None)
-        return None
-    return session
+    with _SESSION_LOCK:
+        session = SESSIONS.get(token)
+        if not session:
+            return None
+        if time.time() - session["created"] > SESSION_MAX_AGE_S:
+            SESSIONS.pop(token, None)
+            return None
+        return dict(session)
 
 
 def current_username(request: Request) -> str:
@@ -125,7 +346,7 @@ _PUBLIC_API_PATHS = {"/api/login", "/api/logout", "/api/me", "/api/health"}
 
 class SessionAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not APP_USERS:
+        if not AUTH_REQUIRED:
             return await call_next(request)
         if not request.url.path.startswith("/api/") or request.url.path in _PUBLIC_API_PATHS:
             return await call_next(request)
@@ -142,26 +363,106 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(SessionAuthMiddleware)
+app.middleware("http")(add_security_headers)
+
+
+LOGIN_RATE_LIMIT = _env_int("LOGIN_RATE_LIMIT", 5, 1, 30)
+LOGIN_RATE_WINDOW_S = _env_int("LOGIN_RATE_WINDOW_SECONDS", 300, 30, 3600)
+GENERATION_RATE_LIMIT = _env_int("GENERATION_RATE_LIMIT", 12, 1, 120)
+GENERATION_RATE_WINDOW_S = _env_int("GENERATION_RATE_WINDOW_SECONDS", 600, 60, 86400)
+MAX_CONCURRENT_GENERATIONS = _env_int("MAX_CONCURRENT_GENERATIONS", 2, 1, 10)
+_RATE_BUCKETS = {}
+_RATE_LOCK = threading.Lock()
+_GENERATION_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_GENERATIONS)
+
+
+def _rate_limited(bucket: str, key: str, limit: int, window_s: int, *, consume: bool = True) -> int:
+    now = time.monotonic()
+    bucket_key = (bucket, key)
+    with _RATE_LOCK:
+        attempts = _RATE_BUCKETS.setdefault(bucket_key, deque())
+        while attempts and attempts[0] <= now - window_s:
+            attempts.popleft()
+        if len(attempts) >= limit:
+            return max(1, int(window_s - (now - attempts[0])))
+        if consume:
+            attempts.append(now)
+        if len(_RATE_BUCKETS) > 10_000:
+            stale_keys = [k for k, values in _RATE_BUCKETS.items() if not values or values[-1] <= now - 86400]
+            for stale_key in stale_keys:
+                _RATE_BUCKETS.pop(stale_key, None)
+    return 0
+
+
+def _clear_rate_bucket(bucket: str, key: str) -> None:
+    with _RATE_LOCK:
+        _RATE_BUCKETS.pop((bucket, key), None)
+
+
+def _client_key(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _enforce_generation_rate_limit(request: Request) -> None:
+    user = getattr(request.state, "user", None)
+    identity = user["username"] if user else _client_key(request)
+    retry_after = _rate_limited(
+        "generation", identity, GENERATION_RATE_LIMIT, GENERATION_RATE_WINDOW_S
+    )
+    if retry_after:
+        raise HTTPException(
+            429,
+            detail="Generation limit reached. Please wait before trying again.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+
+async def _run_provider_call(func, *args, **kwargs):
+    try:
+        await asyncio.wait_for(_GENERATION_SEMAPHORE.acquire(), timeout=15)
+    except TimeoutError as exc:
+        raise HTTPException(503, detail="The generation service is busy. Please try again shortly.") from exc
+    try:
+        return await run_in_threadpool(func, *args, **kwargs)
+    finally:
+        _GENERATION_SEMAPHORE.release()
 
 
 class LoginPayload(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=1, max_length=1024)
 
 
 @app.post("/api/login")
-def login(payload: LoginPayload, response: Response):
-    if not APP_USERS:
+def login(payload: LoginPayload, response: Response, request: Request):
+    if not AUTH_REQUIRED:
         raise HTTPException(400, detail="Login is not configured on this server (APP_USERS is unset).")
-    user = _find_user(payload.username)
-    if not user or not hmac.compare_digest(user["password"], payload.password):
+    username = payload.username.strip()
+    rate_key = f"{_client_key(request)}:{username.casefold()}"
+    retry_after = _rate_limited(
+        "login", rate_key, LOGIN_RATE_LIMIT, LOGIN_RATE_WINDOW_S, consume=False
+    )
+    if retry_after:
+        raise HTTPException(
+            429,
+            detail="Too many failed login attempts. Please try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    user = _find_user(username)
+    encoded = user["password_hash"] if user else _DUMMY_PASSWORD_HASH
+    if not _verify_password(payload.password, encoded) or not user:
+        _rate_limited("login", rate_key, LOGIN_RATE_LIMIT, LOGIN_RATE_WINDOW_S)
         raise HTTPException(401, detail="Invalid username or password.")
+    _clear_rate_bucket("login", rate_key)
+    with _SESSION_LOCK:
+        SESSIONS.pop(request.cookies.get(SESSION_COOKIE, ""), None)
     token = _create_session(user)
     response.set_cookie(
         key=SESSION_COOKIE,
         value=token,
         httponly=True,
-        samesite="lax",
+        samesite="strict",
         secure=COOKIE_SECURE,
         max_age=SESSION_MAX_AGE_S,
         path="/",
@@ -171,14 +472,17 @@ def login(payload: LoginPayload, response: Response):
 
 @app.post("/api/logout")
 def logout(request: Request, response: Response):
-    SESSIONS.pop(request.cookies.get(SESSION_COOKIE, ""), None)
-    response.delete_cookie(SESSION_COOKIE, path="/")
+    with _SESSION_LOCK:
+        SESSIONS.pop(request.cookies.get(SESSION_COOKIE, ""), None)
+    response.delete_cookie(SESSION_COOKIE, path="/", secure=COOKIE_SECURE, samesite="strict")
+    if SESSION_COOKIE != "dw_session":
+        response.delete_cookie("dw_session", path="/")
     return {"success": True}
 
 
 @app.get("/api/me")
 def me(request: Request):
-    if not APP_USERS:
+    if not AUTH_REQUIRED:
         return {"authenticated": False, "auth_disabled": True}
     session = _session_from_request(request)
     if not session:
@@ -193,34 +497,141 @@ def me(request: Request):
 # same in-memory-only, resets-on-restart tradeoff as the rest of this app's
 # history (see the login-gate note above for why that's the free option).
 GENERATION_LOG = []
-GENERATION_LOG_MAX = 200
+_GENERATION_LOG_LOCK = threading.Lock()
+GENERATION_LOG_MAX = _env_int("GENERATION_LOG_MAX", 50, 0, 200)
+GENERATION_LOG_MAX_BYTES = _env_int("GENERATION_LOG_MAX_MB", 64, 1, 256) * 1024 * 1024
 
 
 def log_generation(request: Request, *, source: str, label: str, prompt: str, image_b64: str,
-                   provider: str = None, quality: str = None):
-    GENERATION_LOG.insert(0, {
-        "username": current_username(request),
-        "source":   source,
-        "label":    label,
-        "prompt":   prompt,
-        "image":    image_b64,
-        "provider": provider,
-        "quality":  quality,
-        "ts":       datetime.now(timezone.utc).isoformat(),
-    })
-    del GENERATION_LOG[GENERATION_LOG_MAX:]
+                   provider: str | None = None, quality: str | None = None):
+    if GENERATION_LOG_MAX == 0:
+        return
+    image_size = len(image_b64)
+    if image_size > GENERATION_LOG_MAX_BYTES:
+        logger.warning("Generated image omitted from admin history because it exceeds the retention budget.")
+        return
+    with _GENERATION_LOG_LOCK:
+        GENERATION_LOG.insert(0, {
+            "username": current_username(request),
+            "source":   source,
+            "label":    label,
+            "prompt":   prompt,
+            "image":    image_b64,
+            "provider": provider,
+            "quality":  quality,
+            "ts":       datetime.now(timezone.utc).isoformat(),
+            "_bytes":   image_size,
+        })
+        total_bytes = sum(item.get("_bytes", 0) for item in GENERATION_LOG)
+        while len(GENERATION_LOG) > GENERATION_LOG_MAX or total_bytes > GENERATION_LOG_MAX_BYTES:
+            removed = GENERATION_LOG.pop()
+            total_bytes -= removed.get("_bytes", 0)
 
 
 @app.get("/api/admin/history")
 def admin_history(request: Request):
-    if not APP_USERS:
+    if not AUTH_REQUIRED:
         raise HTTPException(400, detail="Login is not configured on this server (APP_USERS is unset).")
     user = getattr(request.state, "user", None)
     if not user or user.get("role") != "admin":
         raise HTTPException(403, detail="Admin access required.")
-    return {"success": True, "history": GENERATION_LOG}
+    with _GENERATION_LOG_LOCK:
+        history = [{key: value for key, value in item.items() if key != "_bytes"} for item in GENERATION_LOG]
+    return {"success": True, "history": history}
+
+
+MAX_UPLOAD_BYTES = _env_int("MAX_UPLOAD_MB", 12, 1, 32) * 1024 * 1024
+MAX_IMAGE_PIXELS = _env_int("MAX_IMAGE_MEGAPIXELS", 16, 1, 50) * 1_000_000
+MAX_GENERATED_IMAGE_BYTES = _env_int("MAX_GENERATED_IMAGE_MB", 24, 1, 64) * 1024 * 1024
+MAX_EXTRA_PRODUCT_IMAGES = 3
+MAX_EDIT_REFERENCE_IMAGES = 3
+MAX_PROMPT_CHARS = _env_int("MAX_PROMPT_CHARS", 12_000, 1000, 50_000)
+_IMAGE_MIME_BY_FORMAT = {
+    "JPEG": "image/jpeg",
+    "PNG": "image/png",
+    "WEBP": "image/webp",
+}
+
+
+def _bounded_text(value: str, label: str, max_chars: int, *, required: bool = False) -> str:
+    value = (value or "").strip()
+    if required and not value:
+        raise HTTPException(400, detail=f"{label} is required.")
+    if len(value) > max_chars:
+        raise HTTPException(413, detail=f"{label} is too long (maximum {max_chars:,} characters).")
+    return value
+
+
+async def _read_image_upload(upload: UploadFile, label: str) -> tuple[bytes, str]:
+    if not upload or not upload.filename:
+        raise HTTPException(400, detail=f"{label} is missing.")
+    try:
+        data = await upload.read(MAX_UPLOAD_BYTES + 1)
+    finally:
+        await upload.close()
+    if not data:
+        raise HTTPException(400, detail=f"{label} is empty or missing.")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, detail=f"{label} exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit.")
+    detected_mime = await run_in_threadpool(_inspect_image_upload, data, label)
+    return data, detected_mime
+
+
+def _inspect_image_upload(data: bytes, label: str) -> str:
+    try:
+        from PIL import Image, UnidentifiedImageError
+
+        with Image.open(io.BytesIO(data)) as image:
+            detected_mime = _IMAGE_MIME_BY_FORMAT.get(image.format)
+            width, height = image.size
+            if not detected_mime:
+                raise HTTPException(415, detail=f"{label} must be a PNG, JPEG, or WEBP image.")
+            if width < 1 or height < 1 or width * height > MAX_IMAGE_PIXELS:
+                raise HTTPException(
+                    413,
+                    detail=f"{label} dimensions are too large (maximum {MAX_IMAGE_PIXELS // 1_000_000} megapixels).",
+                )
+            image.verify()
+    except HTTPException:
+        raise
+    except (Image.DecompressionBombError, UnidentifiedImageError, OSError, ValueError, SyntaxError) as exc:
+        raise HTTPException(415, detail=f"{label} is not a valid PNG, JPEG, or WEBP image.") from exc
+    return detected_mime
+
+
+def _validate_generated_image(data: bytes) -> bytes:
+    if not data or len(data) > MAX_GENERATED_IMAGE_BYTES:
+        raise RuntimeError("Provider returned an empty or oversized image.")
+    try:
+        from PIL import Image
+
+        with Image.open(io.BytesIO(data)) as image:
+            if image.format not in _IMAGE_MIME_BY_FORMAT:
+                raise ValueError("unsupported output format")
+            width, height = image.size
+            if width < 1 or height < 1 or width * height > MAX_IMAGE_PIXELS:
+                raise ValueError("invalid output dimensions")
+            image.verify()
+    except (Image.DecompressionBombError, OSError, ValueError, SyntaxError) as exc:
+        raise RuntimeError("Provider returned invalid image data.") from exc
+    return data
+
+
+def _provider_failure(provider: str, exc: Exception) -> HTTPException:
+    incident_id = secrets.token_hex(4)
+    logger.warning(
+        "External %s request failed [incident=%s, error_type=%s]",
+        provider,
+        incident_id,
+        type(exc).__name__,
+    )
+    return HTTPException(
+        502,
+        detail=f"The {provider} image service could not complete the request. Reference: {incident_id}",
+    )
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+PROVIDER_TIMEOUT_S = _env_int("PROVIDER_TIMEOUT_SECONDS", 180, 30, 600)
 
 # Which Gemini image model to use for every generation call. Override without
 # touching code by setting this env var before launching uvicorn, e.g.:
@@ -351,12 +762,15 @@ def build_prompt(data: dict) -> str:
     return "\n".join(lines)
 
 
-def gemini_generate(prompt: str, ref_bytes: Optional[bytes] = None,
+def gemini_generate(prompt: str, ref_bytes: bytes | None = None,
                     ref_mime: str = "image/jpeg") -> bytes:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    client = genai.Client(
+        api_key=GEMINI_API_KEY,
+        http_options=types.HttpOptions(timeout=PROVIDER_TIMEOUT_S * 1000),
+    )
 
     if ref_bytes:
         response = client.models.generate_content(
@@ -390,7 +804,7 @@ def gemini_generate(prompt: str, ref_bytes: Optional[bytes] = None,
 def gemini_generate_thumbnail(prompt: str,
                               bg_bytes: bytes, bg_mime: str,
                               base_bytes: bytes, base_mime: str,
-                              extra_base_images: Optional[list] = None) -> bytes:
+                              extra_base_images: list | None = None) -> bytes:
     """
     Composite a thumbnail from a background photo + base (talent/product)
     photo. `extra_base_images` (optional list of (bytes, mime) tuples) are
@@ -400,7 +814,10 @@ def gemini_generate_thumbnail(prompt: str,
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    client = genai.Client(
+        api_key=GEMINI_API_KEY,
+        http_options=types.HttpOptions(timeout=PROVIDER_TIMEOUT_S * 1000),
+    )
 
     # NOTE: these captions are intentionally neutral labels only — no
     # instructions about what to DO with each image live here. All actual
@@ -448,6 +865,7 @@ def _normalize_image_for_openai(data: bytes) -> bytes:
     came in, what goes out is always a well-formed PNG.
     """
     import io
+
     from PIL import Image
 
     img = Image.open(io.BytesIO(data))
@@ -462,8 +880,8 @@ def _normalize_image_for_openai(data: bytes) -> bytes:
 def openai_generate_thumbnail(prompt: str,
                               bg_bytes: bytes, bg_mime: str,
                               base_bytes: bytes, base_mime: str,
-                              quality: str = None,
-                              extra_base_images: Optional[list] = None) -> bytes:
+                              quality: str | None = None,
+                              extra_base_images: list | None = None) -> bytes:
     """
     Composite a thumbnail from a background/style photo + subject/product
     photo using OpenAI's image models. `extra_base_images` (optional list of
@@ -508,14 +926,15 @@ def _normalized_quality(quality: str) -> str:
 def _openai_generate_thumbnail_responses(prompt: str,
                                          bg_bytes: bytes, bg_mime: str,
                                          base_bytes: bytes, base_mime: str,
-                                         quality: str = None,
-                                         extra_base_images: Optional[list] = None) -> bytes:
+                                         quality: str | None = None,
+                                         extra_base_images: list | None = None) -> bytes:
     """Generate via the Responses API's image_generation tool (action="generate")."""
     import base64 as _b64
+
     from openai import OpenAI
 
     quality = _normalized_quality(quality)
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client = OpenAI(api_key=OPENAI_API_KEY, timeout=PROVIDER_TIMEOUT_S, max_retries=1)
 
     try:
         bg_png   = _normalize_image_for_openai(bg_bytes)
@@ -588,14 +1007,15 @@ def _openai_generate_thumbnail_responses(prompt: str,
 def _openai_generate_thumbnail_edit(prompt: str,
                                     bg_bytes: bytes, bg_mime: str,
                                     base_bytes: bytes, base_mime: str,
-                                    quality: str = None,
-                                    extra_base_images: Optional[list] = None) -> bytes:
+                                    quality: str | None = None,
+                                    extra_base_images: list | None = None) -> bytes:
     """Legacy path: raw images.edit call. Kept only for A/B comparison / rollback."""
     import io
+
     from openai import OpenAI
 
     quality = _normalized_quality(quality)
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client = OpenAI(api_key=OPENAI_API_KEY, timeout=PROVIDER_TIMEOUT_S, max_retries=1)
 
     try:
         bg_png   = _normalize_image_for_openai(bg_bytes)
@@ -635,7 +1055,7 @@ def _openai_generate_thumbnail_edit(prompt: str,
 
 
 def openai_edit_photo(prompt: str, img_bytes: bytes, img_mime: str,
-                       reference_images: list = None) -> bytes:
+                       reference_images: list | None = None) -> bytes:
     """
     Dedicated Edit Photo path — a TRUE single-image edit, not the multi-
     reference "generate" mode used by Thumbnail Creator. Uses `images.edit`
@@ -660,9 +1080,10 @@ def openai_edit_photo(prompt: str, img_bytes: bytes, img_mime: str,
     cost tier regardless of what Thumbnail Creator's quality setting is.
     """
     import io
+
     from openai import OpenAI
 
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client = OpenAI(api_key=OPENAI_API_KEY, timeout=PROVIDER_TIMEOUT_S, max_retries=1)
 
     try:
         img_png = _normalize_image_for_openai(img_bytes)
@@ -759,9 +1180,10 @@ def enrich_openai_prompt(base_prompt: str, headline: str,
         return base_prompt, False, "OPENAI_API_KEY not set"
 
     import base64 as _b64
+
     from openai import OpenAI
 
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client = OpenAI(api_key=OPENAI_API_KEY, timeout=PROVIDER_TIMEOUT_S, max_retries=1)
 
     instruction = (
         "You are the internal prompt-writing step that ChatGPT's image generation "
@@ -864,15 +1286,12 @@ def enrich_openai_prompt(base_prompt: str, headline: str,
         if enriched:
             return enriched, True, None
         return base_prompt, False, "model returned empty output"
-    except Exception as e:
-        # Enrichment is a nice-to-have, not a hard dependency — fall back to
-        # the original prompt rather than failing the request, but ALWAYS
-        # print the real error so a silent failure is visible in the server
-        # console instead of just quietly no-op'ing every time.
-        import traceback
-        print(f"[enrich_openai_prompt] enrichment failed, falling back to raw prompt: {e}")
-        traceback.print_exc()
-        return base_prompt, False, str(e)
+    except Exception as exc:
+        # Do not echo provider response bodies to clients or logs; SDK errors
+        # can contain request metadata. The error type is enough to correlate
+        # an incident without exposing agency content.
+        logger.warning("OpenAI prompt enrichment failed [error_type=%s]", type(exc).__name__)
+        return base_prompt, False, "Prompt enrichment was unavailable."
 
 
 def enrich_thumbnail_prompt(base_prompt: str, headline: str,
@@ -896,7 +1315,10 @@ def enrich_thumbnail_prompt(base_prompt: str, headline: str,
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    client = genai.Client(
+        api_key=GEMINI_API_KEY,
+        http_options=types.HttpOptions(timeout=PROVIDER_TIMEOUT_S * 1000),
+    )
 
     instruction = (
         "You are a creative director briefing a photo-compositing AI. Look at the two "
@@ -999,25 +1421,21 @@ def build_thumbnail_prompt(headline: str, notes: str) -> str:
 
 @app.get("/api/health")
 def health():
+    return {"ok": True}
+
+
+@app.get("/api/status")
+def status():
+    """Authenticated operational details; the public health check stays minimal."""
     return {
         "ok": True,
         "auth_enabled": bool(APP_USERS),
-        "user_count": len(APP_USERS),
         "gemini_ready": bool(GEMINI_API_KEY),
         "openai_ready": bool(OPENAI_API_KEY),
         "default_provider": DEFAULT_IMAGE_PROVIDER,
         "openai_call_path": "responses_api (reference-based generation)" if OPENAI_USE_RESPONSES_API
                             else "images.edit (legacy, literal-edit)",
         "openai_responses_model": OPENAI_RESPONSES_MODEL if OPENAI_USE_RESPONSES_API else None,
-        "openai_cost_note": (
-            "Responses API path: per-image cost is NOT flat/predictable — includes vision "
-            "input tokens for both reference photos plus orchestration tokens on top of the "
-            "image render, billed at openai_responses_model's rate. Check your OpenAI usage "
-            "dashboard for actual spend."
-        ) if OPENAI_USE_RESPONSES_API else (
-            "images.edit path: flat, predictable per-image pricing (~$0.005 low / ~$0.041 "
-            "medium / ~$0.165 high)."
-        ),
     }
 
 
@@ -1035,28 +1453,42 @@ async def generate_background(
     mood:          str = Form(""),
     other_details: str = Form(""),
     ratio:         str = Form("Portrait"),
-    reference_image: Optional[UploadFile] = File(None),
+    reference_image: UploadFile | None = File(None),
 ):
     if not GEMINI_API_KEY:
-        raise HTTPException(500, detail="GEMINI_API_KEY is not set on the server.")
+        raise HTTPException(503, detail="The Gemini image provider is not configured.")
+
+    fields = {
+        "description": _bounded_text(description, "Purpose", 2_000),
+        "subject": _bounded_text(subject, "Subject", 2_000),
+        "object_field": _bounded_text(object_field, "Objects/products", 2_000),
+        "environment": _bounded_text(environment, "Environment", 2_000),
+        "action": _bounded_text(action, "Action", 2_000),
+        "style": _bounded_text(style, "Style", 2_000),
+        "camera_angle": _bounded_text(camera_angle, "Camera angle", 2_000),
+        "lighting": _bounded_text(lighting, "Lighting", 2_000),
+        "mood": _bounded_text(mood, "Mood", 2_000),
+        "other_details": _bounded_text(other_details, "Other details", 4_000),
+    }
+    if ratio not in {"Portrait", "Landscape", "Square"}:
+        raise HTTPException(400, detail="Ratio must be Portrait, Landscape, or Square.")
+
     ref_bytes, ref_mime = None, "image/jpeg"
     if reference_image and reference_image.filename:
-        ref_bytes = await reference_image.read()
-        ref_mime  = reference_image.content_type or "image/jpeg"
-        if not ref_bytes:
-            ref_bytes = None
+        ref_bytes, ref_mime = await _read_image_upload(reference_image, "Reference image")
     prompt = build_prompt({
-        "description": description, "subject": subject,
-        "object_field": object_field, "environment": environment,
-        "action": action, "style": style, "camera_angle": camera_angle,
-        "lighting": lighting, "mood": mood, "other_details": other_details,
+        **fields,
         "ratio": ratio,
     })
+    _enforce_generation_rate_limit(request)
     try:
-        img_bytes = gemini_generate(prompt, ref_bytes, ref_mime)
+        img_bytes = await _run_provider_call(gemini_generate, prompt, ref_bytes, ref_mime)
+        img_bytes = await run_in_threadpool(_validate_generated_image, img_bytes)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(500, detail=str(e))
-    label = (description or subject or "Generated image")[:60]
+        raise _provider_failure("Gemini", e) from e
+    label = (fields["description"] or fields["subject"] or "Generated image")[:60]
     image_b64 = base64.b64encode(img_bytes).decode()
     log_generation(request, source="background", label=label, prompt=prompt, image_b64=image_b64, provider="gemini")
     return {
@@ -1084,33 +1516,38 @@ async def generate_thumbnail(
     # "Multiple Product Reference" mode — additional product photos beyond
     # `base_image`, sent when the frontend's checkbox is on (e.g. LEGO
     # MultiP, which merges several products into one shot). Empty by default.
-    extra_product_images: List[UploadFile] = File(default=[]),
+    extra_product_images: list[UploadFile] = File(default=[]),
 ):
     provider = (provider or DEFAULT_IMAGE_PROVIDER).strip().lower()
     if provider not in ("gemini", "openai"):
         raise HTTPException(400, detail=f"Unknown provider '{provider}'. Use 'gemini' or 'openai'.")
     if provider == "gemini" and not GEMINI_API_KEY:
-        raise HTTPException(500, detail="GEMINI_API_KEY is not set on the server.")
+        raise HTTPException(503, detail="The Gemini image provider is not configured.")
     if provider == "openai" and not OPENAI_API_KEY:
-        raise HTTPException(500, detail="OPENAI_API_KEY is not set on the server.")
-    if not headline.strip():
-        raise HTTPException(400, detail="Headline is required.")
+        raise HTTPException(503, detail="The OpenAI image provider is not configured.")
+    if provider == "openai":
+        if quality and quality.strip().lower() not in {"low", "medium", "high"}:
+            raise HTTPException(400, detail="Quality must be low, medium, or high.")
+        quality = _normalized_quality(quality)
+    else:
+        quality = ""
+    headline = _bounded_text(headline, "Headline", 300, required=True)
+    notes = _bounded_text(notes, "Notes", 4_000)
+    custom_prompt = _bounded_text(custom_prompt, "Custom prompt", MAX_PROMPT_CHARS)
+    if enrich_prompt not in {"0", "1", ""} or preserve_face not in {"0", "1", ""}:
+        raise HTTPException(400, detail="Invalid generation option.")
+    if len(extra_product_images or []) > MAX_EXTRA_PRODUCT_IMAGES:
+        raise HTTPException(400, detail=f"At most {MAX_EXTRA_PRODUCT_IMAGES} extra product images are allowed.")
 
-    bg_bytes  = await background_image.read()
-    base_bytes = await base_image.read()
-    if not bg_bytes:
-        raise HTTPException(400, detail="Background photo is empty or missing.")
-    if not base_bytes:
-        raise HTTPException(400, detail="Base photo is empty or missing.")
-
-    bg_mime   = background_image.content_type or "image/jpeg"
-    base_mime = base_image.content_type or "image/jpeg"
+    bg_bytes, bg_mime = await _read_image_upload(background_image, "Background photo")
+    base_bytes, base_mime = await _read_image_upload(base_image, "Base photo")
 
     extra_images = []
-    for extra in extra_product_images or []:
-        extra_bytes = await extra.read()
-        if extra_bytes:
-            extra_images.append((extra_bytes, extra.content_type or "image/jpeg"))
+    for index, extra in enumerate(extra_product_images or []):
+        if extra and extra.filename:
+            extra_images.append(await _read_image_upload(extra, f"Extra product image {index + 1}"))
+
+    _enforce_generation_rate_limit(request)
 
     # Gemini and OpenAI get different prompt treatment on purpose:
     #
@@ -1134,16 +1571,23 @@ async def generate_thumbnail(
     enrichment_used = None
     enrichment_error = None
     if provider == "openai":
-        prompt = custom_prompt.strip() if custom_prompt.strip() else build_thumbnail_prompt(headline, notes)
+        prompt = custom_prompt if custom_prompt else build_thumbnail_prompt(headline, notes)
         want_enrichment = (enrich_prompt or "1").strip() != "0"
-        prompt, enrichment_used, enrichment_error = enrich_openai_prompt(
-            prompt, headline, bg_bytes, bg_mime, base_bytes, base_mime,
-            enabled=want_enrichment,
-        )
+        try:
+            prompt, enrichment_used, enrichment_error = await _run_provider_call(
+                enrich_openai_prompt,
+                prompt, headline, bg_bytes, bg_mime, base_bytes, base_mime,
+                enabled=want_enrichment,
+            )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning("OpenAI prompt enrichment unavailable [error_type=%s]", type(exc).__name__)
+            enrichment_used, enrichment_error = False, "Prompt enrichment was unavailable."
         if not enrichment_used:
-            print(f"[/api/thumbnail] OpenAI prompt enrichment did NOT run — sent raw prompt. Reason: {enrichment_error}")
+            logger.info("OpenAI prompt enrichment did not run: %s", enrichment_error)
     else:
-        if custom_prompt.strip():
+        if custom_prompt:
             prompt = (
                 "CRITICAL — DO NOT DO THIS #1: do not simply paste or overlay the product/subject "
                 "photo on top of the background photo like a sticker or flat collage. That is a "
@@ -1174,7 +1618,7 @@ async def generate_thumbnail(
                 "consistent warm light source and color grade so it reads as a single photograph, "
                 "not photorealistic props layered over a separate graphic background.\n\n"
                 "Now follow these detailed instructions:\n\n"
-                + custom_prompt.strip()
+                + custom_prompt
                 + "\n\nFinal reminders: (1) this must read as ONE cohesively lit photograph, not two "
                 "images stacked together — re-render, don't paste. (2) the product/subject must show "
                 "the exact same side/angle/view as in the base photo — do not rotate it or reveal a "
@@ -1188,17 +1632,26 @@ async def generate_thumbnail(
         # Rewrite the brief into something more concrete/vivid before
         # generating (grounded in the actual photos) — Gemini-only, see note
         # above. Silently falls back to `prompt` unchanged on failure.
-        prompt = enrich_thumbnail_prompt(prompt, headline, bg_bytes, bg_mime, base_bytes, base_mime)
+        try:
+            prompt = await _run_provider_call(
+                enrich_thumbnail_prompt, prompt, headline, bg_bytes, bg_mime, base_bytes, base_mime
+            )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning("Gemini prompt enrichment unavailable [error_type=%s]", type(exc).__name__)
 
     # Modular face/subject identity lock — applied last, after any enrichment
     # rewrite, so it reaches the model verbatim regardless of provider or
     # whether a preset/custom prompt or the plain notes-built prompt was used.
     if (preserve_face or "0").strip() == "1":
         prompt = prompt.rstrip() + "\n\n" + FACE_LOCK_SNIPPET
+    prompt = _bounded_text(prompt, "Generated prompt", MAX_PROMPT_CHARS * 2, required=True)
 
     try:
         if provider == "openai":
-            img_bytes = openai_generate_thumbnail(
+            img_bytes = await _run_provider_call(
+                openai_generate_thumbnail,
                 prompt,
                 bg_bytes,  bg_mime,
                 base_bytes, base_mime,
@@ -1206,15 +1659,19 @@ async def generate_thumbnail(
                 extra_base_images=extra_images,
             )
         else:
-            img_bytes = gemini_generate_thumbnail(
+            img_bytes = await _run_provider_call(
+                gemini_generate_thumbnail,
                 prompt,
                 bg_bytes,  bg_mime,
                 base_bytes, base_mime,
                 extra_base_images=extra_images,
             )
+        img_bytes = await run_in_threadpool(_validate_generated_image, img_bytes)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(500, detail=str(e))
-    label = headline.strip()[:60]
+        raise _provider_failure("OpenAI" if provider == "openai" else "Gemini", e) from e
+    label = headline[:60]
     image_b64 = base64.b64encode(img_bytes).decode()
     log_generation(request, source="thumbnail", label=label, prompt=prompt, image_b64=image_b64,
                     provider=provider, quality=quality if provider == "openai" else None)
@@ -1237,7 +1694,7 @@ async def edit_photo(
     request: Request,
     prompt: str = Form(...),
     image:  UploadFile = File(...),
-    reference_images: List[UploadFile] = File(default=[]),
+    reference_images: list[UploadFile] = File(default=[]),
 ):
     """
     Dedicated Edit Photo endpoint — takes ONE photo plus a plain-language
@@ -1246,34 +1703,31 @@ async def edit_photo(
     there's no provider/quality choice here on purpose, this feature exists
     specifically to be the cheap, quick "small adjustment" path.
 
-    `reference_images` (optional, up to 3 from the UI, but not enforced
-    here): extra photos — a logo, an object, or a background — the model
+    `reference_images` (optional, up to 3): extra photos — a logo, an
+    object, or a background — the model
     can pull specific elements from while `image` stays the literal edit
     canvas. Omit them entirely and this behaves exactly as before.
     """
     if not OPENAI_API_KEY:
-        raise HTTPException(500, detail="OPENAI_API_KEY is not set on the server.")
-    if not prompt.strip():
-        raise HTTPException(400, detail="Please describe the edit you want.")
+        raise HTTPException(503, detail="The OpenAI image provider is not configured.")
+    prompt = _bounded_text(prompt, "Edit instruction", MAX_PROMPT_CHARS, required=True)
+    if len(reference_images or []) > MAX_EDIT_REFERENCE_IMAGES:
+        raise HTTPException(400, detail=f"At most {MAX_EDIT_REFERENCE_IMAGES} reference images are allowed.")
 
-    img_bytes = await image.read()
-    if not img_bytes:
-        raise HTTPException(400, detail="Photo is empty or missing.")
+    img_bytes, img_mime = await _read_image_upload(image, "Photo")
 
     ref_pairs = []
-    for ref in reference_images or []:
+    for index, ref in enumerate(reference_images or []):
         if not ref or not ref.filename:
             continue
-        ref_bytes = await ref.read()
-        if ref_bytes:
-            ref_pairs.append((ref_bytes, ref.content_type or "image/jpeg"))
+        ref_pairs.append(await _read_image_upload(ref, f"Reference image {index + 1}"))
 
     # images.edit gets one text prompt for the whole call — there's no way to
     # caption each image individually the way the Responses API allows — so
     # when references are attached, the instructions for how to use them
     # have to be woven into the prompt text itself, ahead of the user's own
     # instruction.
-    edit_prompt = prompt.strip()
+    edit_prompt = prompt
     if ref_pairs:
         count_word = "an extra reference photo" if len(ref_pairs) == 1 else f"{len(ref_pairs)} extra reference photos"
         edit_prompt = (
@@ -1285,15 +1739,20 @@ async def edit_photo(
             f"Instruction: {edit_prompt}"
         )
 
+    _enforce_generation_rate_limit(request)
     try:
-        result_bytes = openai_edit_photo(
-            edit_prompt, img_bytes, image.content_type or "image/jpeg",
+        result_bytes = await _run_provider_call(
+            openai_edit_photo,
+            edit_prompt, img_bytes, img_mime,
             reference_images=ref_pairs,
         )
+        result_bytes = await run_in_threadpool(_validate_generated_image, result_bytes)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(500, detail=str(e))
+        raise _provider_failure("OpenAI", e) from e
 
-    label = prompt.strip()[:60]
+    label = prompt[:60]
     image_b64 = base64.b64encode(result_bytes).decode()
     log_generation(request, source="edit-photo", label=label, prompt=edit_prompt, image_b64=image_b64,
                     provider="openai", quality="low")
@@ -1313,25 +1772,27 @@ async def edit_photo(
 async def quick_generate(
     request: Request,
     prompt: str = Form(...),
-    reference_image: Optional[UploadFile] = File(None),
+    reference_image: UploadFile | None = File(None),
 ):
     if not GEMINI_API_KEY:
-        raise HTTPException(500, detail="GEMINI_API_KEY is not set on the server.")
+        raise HTTPException(503, detail="The Gemini image provider is not configured.")
+    prompt = _bounded_text(prompt, "Prompt", MAX_PROMPT_CHARS, required=True)
     ref_bytes, ref_mime = None, "image/jpeg"
     if reference_image and reference_image.filename:
-        ref_bytes = await reference_image.read()
-        ref_mime  = reference_image.content_type or "image/jpeg"
-        if not ref_bytes:
-            ref_bytes = None
+        ref_bytes, ref_mime = await _read_image_upload(reference_image, "Reference image")
     full_prompt = (
         f"{prompt}\n\n"
         "Requirements: High-quality, professional, visually compelling image. "
         "High resolution, clean composition."
     )
+    _enforce_generation_rate_limit(request)
     try:
-        img_bytes = gemini_generate(full_prompt, ref_bytes, ref_mime)
+        img_bytes = await _run_provider_call(gemini_generate, full_prompt, ref_bytes, ref_mime)
+        img_bytes = await run_in_threadpool(_validate_generated_image, img_bytes)
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(500, detail=str(e))
+        raise _provider_failure("Gemini", e) from e
     label = prompt[:60]
     image_b64 = base64.b64encode(img_bytes).decode()
     log_generation(request, source="quick-generate", label=label, prompt=full_prompt, image_b64=image_b64, provider="gemini")

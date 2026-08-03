@@ -102,8 +102,16 @@ function HistoryCard({ item, onEdit, onDownload }) {
         <button
           className="btn-secondary"
           onClick={() => {
-            const win = window.open()
-            win.document.write(`<img src="data:image/png;base64,${item.image}" style="max-width:100%;max-height:100vh" />`)
+            const win = window.open('', '_blank')
+            if (!win) return
+            win.opener = null
+            win.document.title = item.label || 'Generated image'
+            const image = win.document.createElement('img')
+            image.src = `data:image/png;base64,${item.image}`
+            image.alt = item.label || 'Generated image'
+            image.style.maxWidth = '100%'
+            image.style.maxHeight = '100vh'
+            win.document.body.appendChild(image)
           }}
         >
           🔍

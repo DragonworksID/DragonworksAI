@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useHistory } from '../App.jsx'
 import UploadBox from '../UploadBox.jsx'
+import { apiFetch } from '../api.js'
 
 const INITIAL = {
   description: '', subject: '', object_field: '', environment: '',
@@ -36,7 +37,7 @@ export default function BackgroundCreator() {
     if (refImage?.file) fd.append('reference_image', refImage.file)
 
     try {
-      const res  = await fetch('/api/generate', { method: 'POST', body: fd })
+      const res  = await apiFetch('/api/generate', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Generation failed')
 
@@ -185,6 +186,7 @@ export default function BackgroundCreator() {
                   placeholder="e.g. Live streaming background for PAYDAY sale event..."
                   value={form.description}
                   onChange={handleField}
+                  maxLength={2000}
                   rows={3}
                 />
               </div>
@@ -192,31 +194,31 @@ export default function BackgroundCreator() {
               <div className="form-group">
                 <label className="form-label">Subject</label>
                 <input className="form-input" name="subject" placeholder="e.g. World Cup trophy"
-                  value={form.subject} onChange={handleField} />
+                  value={form.subject} onChange={handleField} maxLength={2000} />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Object / Product</label>
                 <input className="form-input" name="object_field" placeholder="e.g. Infinix Hot 70"
-                  value={form.object_field} onChange={handleField} />
+                  value={form.object_field} onChange={handleField} maxLength={2000} />
               </div>
 
               <div className="form-group full">
                 <label className="form-label">Environment / Background</label>
                 <input className="form-input" name="environment" placeholder="e.g. Transparent background, stadium lights"
-                  value={form.environment} onChange={handleField} />
+                  value={form.environment} onChange={handleField} maxLength={2000} />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Action</label>
                 <input className="form-input" name="action" placeholder="e.g. products displayed on podium"
-                  value={form.action} onChange={handleField} />
+                  value={form.action} onChange={handleField} maxLength={2000} />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Style</label>
                 <input className="form-input" name="style" placeholder="e.g. festival, cinematic"
-                  value={form.style} onChange={handleField} />
+                  value={form.style} onChange={handleField} maxLength={2000} />
               </div>
             </div>
 
@@ -229,25 +231,25 @@ export default function BackgroundCreator() {
               <div className="form-group">
                 <label className="form-label">Camera Angle</label>
                 <input className="form-input" name="camera_angle" placeholder="e.g. front view"
-                  value={form.camera_angle} onChange={handleField} />
+                  value={form.camera_angle} onChange={handleField} maxLength={2000} />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Lighting</label>
                 <input className="form-input" name="lighting" placeholder="e.g. soft, warm"
-                  value={form.lighting} onChange={handleField} />
+                  value={form.lighting} onChange={handleField} maxLength={2000} />
               </div>
 
               <div className="form-group">
                 <label className="form-label">Mood</label>
                 <input className="form-input" name="mood" placeholder="e.g. fun, energetic"
-                  value={form.mood} onChange={handleField} />
+                  value={form.mood} onChange={handleField} maxLength={2000} />
               </div>
 
               <div className="form-group full">
                 <label className="form-label">Other Details</label>
                 <input className="form-input" name="other_details" placeholder="Any other specifications..."
-                  value={form.other_details} onChange={handleField} />
+                  value={form.other_details} onChange={handleField} maxLength={4000} />
               </div>
             </div>
           </div>

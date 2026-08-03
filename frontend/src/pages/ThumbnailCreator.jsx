@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useHistory } from '../App.jsx'
 import { useToast } from '../Toast.jsx'
 import UploadBox from '../UploadBox.jsx'
+import { apiFetch } from '../api.js'
 
 // Locked pending further rollout — see the "AI Provider" card and "Image
 // Quality" row below for where these are enforced in the UI.
@@ -1161,7 +1162,7 @@ export default function ThumbnailCreator() {
     }
 
     try {
-      const res  = await fetch('/api/thumbnail', { method: 'POST', body: fd })
+      const res  = await apiFetch('/api/thumbnail', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Generation failed')
 
@@ -1369,6 +1370,7 @@ export default function ThumbnailCreator() {
                 placeholder="e.g. RAHASIA PEKERJA PRODUKTIF"
                 value={headline}
                 onChange={e => setHeadline(e.target.value)}
+                maxLength={300}
               />
             </div>
 
@@ -1380,6 +1382,7 @@ export default function ThumbnailCreator() {
                   placeholder="e.g. headline colorful & timbul di samping talent, tidak menutupi wajah…"
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
+                  maxLength={4000}
                   rows={3}
                 />
               </div>
@@ -1508,6 +1511,7 @@ export default function ThumbnailCreator() {
                   className="form-textarea"
                   value={presetPrompt}
                   onChange={e => setPresetPrompt(e.target.value)}
+                  maxLength={12000}
                   rows={8}
                   style={{ fontSize: 11, lineHeight: 1.5 }}
                 />

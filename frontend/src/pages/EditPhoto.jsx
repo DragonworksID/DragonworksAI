@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useHistory } from '../App.jsx'
 import { useToast } from '../Toast.jsx'
 import UploadBox from '../UploadBox.jsx'
+import { apiFetch } from '../api.js'
 
 // Converts a base64 PNG (as stored in History) into a File object so it can
 // be re-uploaded through the same form-data flow as a fresh upload.
@@ -57,7 +58,7 @@ export default function EditPhoto() {
     }
 
     try {
-      const res  = await fetch('/api/edit-photo', { method: 'POST', body: fd })
+      const res  = await apiFetch('/api/edit-photo', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Edit failed')
 
@@ -200,6 +201,7 @@ export default function EditPhoto() {
                 placeholder="e.g. brighten the subject's face, remove the object in the background, make the sky more blue…"
                 value={instruction}
                 onChange={e => setInstruction(e.target.value)}
+                maxLength={12000}
                 rows={4}
               />
             </div>
