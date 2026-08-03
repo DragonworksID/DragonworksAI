@@ -173,6 +173,7 @@ class SecurityRegressionTests(unittest.TestCase):
     def test_required_auth_configuration_fails_closed(self):
         old_env = main.APP_USERS_ENV
         old_legacy = main.ALLOW_LEGACY_PLAINTEXT_PASSWORDS
+        old_legacy_min_length = main.LEGACY_PLAINTEXT_MIN_LENGTH
         try:
             main.APP_USERS_ENV = ""
             with self.assertRaises(RuntimeError):
@@ -187,9 +188,22 @@ class SecurityRegressionTests(unittest.TestCase):
             main.APP_USERS_ENV = '[{"username":"admin","password":"long legacy password","role":"admin"}]'
             with self.assertRaises(RuntimeError):
                 main._load_app_users()
+
+            main.ALLOW_LEGACY_PLAINTEXT_PASSWORDS = True
+            main.LEGACY_PLAINTEXT_MIN_LENGTH = 6
+            main.APP_USERS_ENV = '[{"username":"admin","password":"abc123","role":"admin"}]'
+            migrated_users = main._load_app_users()
+            self.assertEqual(len(migrated_users), 1)
+            self.assertTrue(main._verify_password("abc123", migrated_users[0]["password_hash"]))
+            self.assertNotIn("password", migrated_users[0])
+
+            main.LEGACY_PLAINTEXT_MIN_LENGTH = 7
+            with self.assertRaises(RuntimeError):
+                main._load_app_users()
         finally:
             main.APP_USERS_ENV = old_env
             main.ALLOW_LEGACY_PLAINTEXT_PASSWORDS = old_legacy
+            main.LEGACY_PLAINTEXT_MIN_LENGTH = old_legacy_min_length
 
 
 if __name__ == "__main__":

@@ -181,6 +181,9 @@ PASSWORD_HASH_ITERATIONS = 600_000
 ALLOW_LEGACY_PLAINTEXT_PASSWORDS = _env_flag(
     "ALLOW_LEGACY_PLAINTEXT_PASSWORDS", default=not IS_PRODUCTION
 )
+LEGACY_PLAINTEXT_MIN_LENGTH = _env_int(
+    "LEGACY_PLAINTEXT_MIN_LENGTH", 12, 6, 128
+)
 
 
 def _b64_no_padding(data: bytes) -> str:
@@ -256,14 +259,15 @@ def _load_app_users():
             legacy_password = u.get("password")
             if not isinstance(legacy_password, str) or not legacy_password:
                 raise RuntimeError(f"APP_USERS entry {index + 1} needs password_hash.")
-            if len(legacy_password) < 12:
-                raise RuntimeError(
-                    f"APP_USERS entry {index + 1} uses a legacy plaintext password shorter than 12 characters."
-                )
             if not ALLOW_LEGACY_PLAINTEXT_PASSWORDS:
                 raise RuntimeError(
                     f"APP_USERS entry {index + 1} uses legacy plaintext 'password'. "
                     "Generate password_hash with backend/hash_password.py."
+                )
+            if len(legacy_password) < LEGACY_PLAINTEXT_MIN_LENGTH:
+                raise RuntimeError(
+                    f"APP_USERS entry {index + 1} uses a legacy plaintext password shorter "
+                    f"than {LEGACY_PLAINTEXT_MIN_LENGTH} characters."
                 )
             encoded = hash_password(legacy_password)
             logger.warning(

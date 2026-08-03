@@ -5,7 +5,7 @@
 - Keep `AUTH_REQUIRED=1`, `COOKIE_SECURE=1`, and `APP_ENV=production`.
 - Store `GEMINI_API_KEY`, `OPENAI_API_KEY`, and `APP_USERS` only in the hosting provider's secret manager.
 - Generate account hashes with `python backend/hash_password.py`. Use a unique, 12+ character password for every account and store only the resulting `password_hash` in `APP_USERS`.
-- Production rejects legacy plaintext `password` entries. `ALLOW_LEGACY_PLAINTEXT_PASSWORDS=1` exists only for a short, controlled migration and should never remain enabled.
+- Production rejects legacy plaintext `password` entries by default. For short-term operational migration only, set `ALLOW_LEGACY_PLAINTEXT_PASSWORDS=1`. Existing six-character accounts additionally require `LEGACY_PLAINTEXT_MIN_LENGTH=6`; the default remains 12. Remove both overrides after every account has a `password_hash`.
 - Grant the `admin` role only to staff who are authorized to view all users' generated images and prompts.
 - Set `CORS_ORIGINS` only when a separate trusted frontend is required. Use exact HTTPS origins; wildcards are rejected.
 - Provider calls time out after 180 seconds by default (`PROVIDER_TIMEOUT_SECONDS`) so a stalled vendor cannot occupy generation capacity forever.
@@ -18,6 +18,10 @@ Example account configuration:
   {"username":"security-admin","password_hash":"pbkdf2_sha256$600000$...","role":"admin"}
 ]
 ```
+
+### Temporary legacy-password migration
+
+The compatibility override keeps authentication enabled and converts plaintext values to PBKDF2 hashes immediately when the process starts, but the original values still remain in Render's secret configuration. Treat it as a time-limited exception: restrict access to the Render environment, migrate each account to a unique 12+ character password hash, remove the `password` fields, delete both override variables, and redeploy.
 
 ## Data handling
 
