@@ -17,7 +17,7 @@ function colorFor(name) {
   return `hsl(${hue}, 60%, 50%)`
 }
 
-export default function Sidebar({ activePage, onNavigate, historyCount }) {
+export default function Sidebar({ activePage, onNavigate, historyCount, scriptCount }) {
   const auth = useAuth()
   const currentUser = auth?.currentUser
   const isAdmin = currentUser?.role === 'admin'
@@ -41,6 +41,27 @@ export default function Sidebar({ activePage, onNavigate, historyCount }) {
           badge="NEW"
           active={activePage === 'thumbnail'}
           onClick={() => onNavigate('thumbnail')}
+        />
+        <NavItem
+          icon="📝"
+          label="Script Generator"
+          badge="NEW"
+          active={activePage === 'script'}
+          onClick={() => onNavigate('script')}
+        />
+        <NavItem
+          icon="💬"
+          label="Caption Generator"
+          badge="NEW"
+          active={activePage === 'caption'}
+          onClick={() => onNavigate('caption')}
+        />
+        <NavItem
+          icon="🏷️"
+          label="Thumbnail Caption"
+          badge="NEW"
+          active={activePage === 'thumbcaption'}
+          onClick={() => onNavigate('thumbcaption')}
         />
         {/* Locked to control AI spend — team doesn't currently use these. */}
         <NavItem icon="🖼️" label="Background Creator" lockedBadge disabled />
@@ -71,6 +92,12 @@ export default function Sidebar({ activePage, onNavigate, historyCount }) {
           label={`History${historyCount ? ` (${historyCount})` : ''}`}
           active={activePage === 'history'}
           onClick={() => onNavigate('history')}
+        />
+        <NavItem
+          icon="📄"
+          label={`Script History${scriptCount ? ` (${scriptCount})` : ''}`}
+          active={activePage === 'scripthistory'}
+          onClick={() => onNavigate('scripthistory')}
         />
       </div>
 

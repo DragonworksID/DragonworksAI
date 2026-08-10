@@ -977,3 +977,355 @@ html, body, #root {
 
 .ba-slider-label-left  { left: 10px; }
 .ba-slider-label-right { right: 10px; }
+
+/* ═══════════════════════════════════════════════
+   Script Generator — chat UI
+   ═══════════════════════════════════════════════ */
+
+.script-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .script-layout { grid-template-columns: 1fr; }
+}
+
+.chat-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  /* Sized against the viewport so the composer stays put and only the thread
+     scrolls — the whole page scrolling on every reply is disorienting when
+     you're iterating on a script. */
+  height: calc(100vh - 230px);
+  min-height: 460px;
+  overflow: hidden;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-behavior: smooth;
+}
+
+.chat-row { display: flex; }
+.chat-row-user      { justify-content: flex-end; }
+.chat-row-assistant { justify-content: flex-start; }
+
+.chat-bubble {
+  max-width: 82%;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  border: 1px solid var(--border);
+}
+
+.chat-bubble-user {
+  background: var(--gradient);
+  border-color: transparent;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble-assistant {
+  background: var(--bg-card-2);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+/* Model output is plain text and often carries meaningful line breaks
+   (HOOK / ISI / CTA blocks, "Visual:" lines) — preserve them without
+   letting a long unbroken paste blow out the layout. */
+.chat-bubble-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.chat-bubble-user .chat-bubble-meta { color: rgba(255,255,255,0.85); }
+
+.chat-copy-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-family: inherit;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chat-copy-btn:hover {
+  color: var(--text);
+  border-color: var(--border-focus);
+  background: var(--bg-hover);
+}
+
+.chat-bubble-typing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.chat-composer {
+  border-top: 1px solid var(--border);
+  padding: 14px 20px 16px;
+  flex-shrink: 0;
+  background: var(--bg-card);
+}
+
+.chat-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 68px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.chat-input:focus { border-color: var(--border-focus); }
+.chat-input::placeholder { color: var(--text-dim); }
+.chat-input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.chat-send { margin-top: 10px; padding: 11px; font-size: 14px; }
+
+/* ── Preset chips ────────────────────────────── */
+.preset-chip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-chip:hover {
+  color: var(--text);
+  border-color: var(--border-focus);
+  background: var(--bg-hover);
+  transform: translateX(2px);
+}
+
+.preset-chip-icon { font-size: 15px; flex-shrink: 0; }
+
+.script-note {
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+.script-note code {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  color: var(--accent-light);
+}
+
+/* ── Script history ──────────────────────────── */
+.script-history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.script-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.script-card { padding: 18px 20px; }
+
+.script-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.script-card-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.script-card-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+/* ── Content-type selector in the composer ───── */
+.composer-type-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.composer-type-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.composer-type-select {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 30px 7px 10px;
+  font-size: 12px;
+}
+
+/* ── Caption Generator ───────────────────────── */
+.caption-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.caption-card {
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.caption-card:hover { border-color: var(--border-focus); }
+
+.caption-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.caption-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.caption-card-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+/* ── Thumbnail Caption options ───────────────── */
+.thumb-option { padding: 14px 16px; }
+
+.thumb-option-long {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.06);
+}
+
+/* Sized up deliberately: these words end up as large overlay text, so the
+   preview should read closer to how they'll actually look on an image than
+   to body copy. */
+.thumb-option-text {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.thumb-option-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.thumb-count {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.thumb-count-warn { color: var(--warning); }

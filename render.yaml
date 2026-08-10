@@ -19,6 +19,23 @@ services:
         value: "24.14.1"
       - key: PYTHON_VERSION
         value: "3.14.3"
+      # ── Script Generator (text only, no image cost) ────────────────
+      # Non-secret, so they live here rather than in the dashboard.
+      # gpt-5.4-mini is the recommended default: nano-class models are
+      # tuned for classification/extraction and their Indonesian reads
+      # translated rather than written. At roughly $0.005 per turn a
+      # 20-turn scripting session costs about as much as 2-3 medium
+      # thumbnails, so the cost pressure that shapes the image-model
+      # choices doesn't really apply. Set gpt-5.4 for stronger concepts.
+      - key: SCRIPT_PROVIDER
+        value: openai
+      - key: SCRIPT_TEXT_MODEL
+        value: gpt-5.4-mini
+      # Generous on purpose — the GPT-5 family are reasoning models and
+      # reasoning tokens come out of this same budget. Too low and the
+      # model can spend the whole allowance thinking and return nothing.
+      - key: SCRIPT_MAX_TOKENS
+        value: "3000"
       # Set the actual values in the Render dashboard (Environment tab) —
       # `sync: false` just means "required, but don't store the value in
       # this file / git history".

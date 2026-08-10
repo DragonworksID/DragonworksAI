@@ -3,6 +3,8 @@ import { apiFetch } from '../api.js'
 
 export default function AdminHistory() {
   const [entries, setEntries] = useState(null)   // null = loading
+  const [scripts, setScripts] = useState(null)   // null = loading
+  const [tab, setTab]         = useState('images')
   const [error, setError]     = useState('')
 
   useEffect(() => {
@@ -14,6 +16,20 @@ export default function AdminHistory() {
       })
       .then(data => setEntries(data.history || []))
       .catch(err => setError(err.message))
+  }, [])
+
+  // Scripts come from their own endpoint backed by their own bounded buffer,
+  // kept separate from the image log so a busy day of scriptwriting can't
+  // evict image records (GENERATION_LOG is capped at 50 entries in total).
+  useEffect(() => {
+    apiFetch('/api/admin/scripts')
+      .then(async res => {
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.detail || 'Failed to load scripts')
+        return data
+      })
+      .then(data => setScripts(data.scripts || []))
+      .catch(() => setScripts([]))
   }, [])
 
   function download(item) {
@@ -41,7 +57,28 @@ export default function AdminHistory() {
         </div>
       )}
 
-      {entries === null ? (
+      <div className="script-history-toolbar">
+        <div className="result-actions">
+          <button
+            className="btn-secondary"
+            style={tab === 'images' ? { color: 'var(--text)', borderColor: 'var(--border-focus)' } : undefined}
+            onClick={() => setTab('images')}
+          >
+            🖼️ Images{entries?.length ? ` (${entries.length})` : ''}
+          </button>
+          <button
+            className="btn-secondary"
+            style={tab === 'scripts' ? { color: 'var(--text)', borderColor: 'var(--border-focus)' } : undefined}
+            onClick={() => setTab('scripts')}
+          >
+            📝 Scripts{scripts?.length ? ` (${scripts.length})` : ''}
+          </button>
+        </div>
+      </div>
+
+      {tab === 'scripts' ? (
+        <ScriptLog scripts={scripts} />
+      ) : entries === null ? (
         <div className="empty-state">
           <div className="empty-state-icon">⏳</div>
           <h3>Loading…</h3>
@@ -69,6 +106,54 @@ export default function AdminHistory() {
         </>
       )}
     </div>
+  )
+}
+
+function ScriptLog({ scripts }) {
+  if (scripts === null) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">⏳</div>
+        <h3>Loading…</h3>
+      </div>
+    )
+  }
+  if (scripts.length === 0) {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">📝</div>
+        <h3>No scripts yet</h3>
+        <p>Once someone on the team uses the Script Generator, it'll show up here.</p>
+      </div>
+    )
+  }
+  return (
+    <>
+      <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+        {scripts.length} script{scripts.length !== 1 ? 's' : ''} across all accounts
+      </div>
+      <div className="script-history-list">
+        {scripts.map((item, i) => (
+          <div className="card script-card" key={`${item.username}-${item.ts}-${i}`}>
+            <div className="script-card-head">
+              <div>
+                <div className="history-card-meta">
+                  <span className="badge badge-locked" style={{ marginRight: 6 }}>
+                    👤 {item.username}
+                  </span>
+                  {item.provider}{item.model ? ` · ${item.model}` : ''}
+                </div>
+                <div className="history-card-meta">{new Date(item.ts).toLocaleString()}</div>
+              </div>
+            </div>
+            <div className="script-card-label" style={{ marginBottom: 6 }}>Brief</div>
+            <div className="script-card-body">{item.prompt}</div>
+            <div className="script-card-label" style={{ margin: '12px 0 6px' }}>Reply</div>
+            <div className="script-card-body">{item.reply}</div>
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
 

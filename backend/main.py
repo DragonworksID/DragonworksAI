@@ -8,6 +8,7 @@ import io
 import json
 import logging
 import os
+import re
 import secrets
 import threading
 import time
@@ -15,6 +16,7 @@ import uuid
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -1440,6 +1442,11 @@ def status():
         "openai_call_path": "responses_api (reference-based generation)" if OPENAI_USE_RESPONSES_API
                             else "images.edit (legacy, literal-edit)",
         "openai_responses_model": OPENAI_RESPONSES_MODEL if OPENAI_USE_RESPONSES_API else None,
+        # Script Generator — these names are resolved further down the file,
+        # but this function only runs after the module has fully loaded.
+        "script_provider": SCRIPT_PROVIDER,
+        "script_model": SCRIPT_TEXT_MODEL,
+        "script_ready": bool(OPENAI_API_KEY if SCRIPT_PROVIDER == "openai" else GEMINI_API_KEY),
     }
 
 
@@ -1808,6 +1815,702 @@ async def quick_generate(
         "label":  label,
         "prompt_used": full_prompt,
     }
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Script Generator — conversational scriptwriting assistant (text only)
+# ════════════════════════════════════════════════════════════════════════
+# A plain chat endpoint for editors: they describe the TikTok/Reels video
+# they need, the assistant writes and refines the script in Indonesian.
+#
+# Deliberately has NO structured output, no JSON schema, no duration or
+# timestamp arithmetic — an earlier design did, and every one of those
+# pieces was a way for the feature to break. The quality here comes from
+# SCRIPT_SYSTEM_PROMPT below, not from scaffolding around the model.
+#
+# Three things below exist specifically so this feature can't degrade the
+# image tools it sits next to:
+#   1. Its own semaphore (NOT _GENERATION_SEMAPHORE, which is capped at 2
+#      and shared with image generation — a 60s Nano Banana render would
+#      otherwise block an editor mid-conversation).
+#   2. Its own rate-limit bucket (the "generation" bucket is 12/10min,
+#      correct for $0.13 images and hostile for conversation).
+#   3. Its own log (GENERATION_LOG is capped at 50 entries *total*, so
+#      mixing scripts in would silently evict admin image records).
+
+SCRIPT_PROVIDER = os.getenv("SCRIPT_PROVIDER", "openai").strip().lower()  # "openai" | "gemini"
+
+
+def _default_script_model(provider: str) -> str:
+    """
+    gpt-5.4-mini is the recommended default: nano-class models are tuned for
+    classification/extraction — narrow, predictable outputs — which is the
+    opposite of open-ended creative writing, and their Indonesian tends to
+    read translated rather than written. At roughly $0.005 per turn, a
+    20-turn scripting session costs about as much as 2-3 medium-quality
+    thumbnails, so the usual cost pressure that shapes the image-model
+    choices does not really apply here. Set SCRIPT_TEXT_MODEL=gpt-5.4 when
+    someone needs a stronger concept.
+    """
+    explicit = os.getenv("SCRIPT_TEXT_MODEL", "").strip()
+    if explicit:
+        return explicit
+    return "gpt-5.4-mini" if provider == "openai" else GEMINI_TEXT_MODEL
+
+
+SCRIPT_TEXT_MODEL = _default_script_model(SCRIPT_PROVIDER)
+# Generous by default: the GPT-5 family are reasoning models, and reasoning
+# tokens are drawn from this same budget — set it too low and the model can
+# burn the whole allowance thinking and return empty content.
+SCRIPT_MAX_TOKENS = _env_int("SCRIPT_MAX_TOKENS", 3000, 256, 16_000)
+# "" disables sending the parameter at all (for models that reject it).
+SCRIPT_REASONING_EFFORT = os.getenv("SCRIPT_REASONING_EFFORT", "low").strip().lower()
+SCRIPT_TIMEOUT_S = _env_int("SCRIPT_TIMEOUT_SECONDS", 120, 15, 600)
+
+SCRIPT_RATE_LIMIT = _env_int("SCRIPT_RATE_LIMIT", 60, 5, 600)
+SCRIPT_RATE_WINDOW_S = _env_int("SCRIPT_RATE_WINDOW_SECONDS", 600, 60, 86_400)
+MAX_CONCURRENT_SCRIPTS = _env_int("MAX_CONCURRENT_SCRIPTS", 6, 1, 32)
+_SCRIPT_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_SCRIPTS)
+
+# The client holds the conversation and resends it each turn (stateless,
+# same in-memory-only tradeoff as the rest of this app). These caps are what
+# stop an unbounded client from sending an unbounded thread.
+MAX_SCRIPT_MESSAGES = _env_int("MAX_SCRIPT_MESSAGES", 16, 2, 60)
+MAX_SCRIPT_MESSAGE_CHARS = _env_int("MAX_SCRIPT_MESSAGE_CHARS", 6_000, 500, 20_000)
+MAX_SCRIPT_TOTAL_CHARS = _env_int("MAX_SCRIPT_TOTAL_CHARS", 24_000, 2_000, 120_000)
+
+
+SCRIPT_SYSTEM_PROMPT = (
+    "Kamu adalah scriptwriter senior di Dragonworks AI Dept. Kamu menulis naskah "
+    "video pendek untuk TikTok dan Instagram Reels — konten brand, produk, dan "
+    "live-commerce. Editor yang mengajakmu ngobrol butuh naskah yang langsung "
+    "bisa dipakai syuting, bukan penjelasan panjang tentang teori copywriting.\n\n"
+
+    "BAHASA\n"
+    "- Selalu balas dalam Bahasa Indonesia, apa pun bahasa yang dipakai editor "
+    "waktu ngasih brief.\n"
+    "- Semua kalimat yang diucapkan talent ditulis penuh dalam Bahasa Indonesia.\n"
+    "- Istilah teknis produksi TETAP dalam bahasa Inggris, jangan diterjemahkan: "
+    "hook, B-roll, cut to, close-up, voice-over, VO, CTA, transition, text "
+    "overlay, jumpcut, lower third. Menerjemahkan istilah ini bikin naskah "
+    "terbaca seperti hasil mesin.\n"
+    "- Angka yang dibaca keras ditulis sesuai cara mengucapkannya, misalnya "
+    "\"tiga juta lima ratus ribu\", bukan \"Rp3.500.000\".\n\n"
+
+    "GAYA BAHASA\n"
+    "- Ikuti register yang dipakai editor. Default: santai-profesional (\"kamu\").\n"
+    "- Pakai \"Anda\" untuk brief korporat atau B2B.\n"
+    "- Pakai gaya Jakarta (\"lo/gue\") hanya kalau editor jelas memintanya.\n\n"
+
+    "FORMAT NASKAH\n"
+    "- Struktur default untuk video pendek 15-60 detik:\n"
+    "    HOOK  — 1-2 kalimat pembuka yang bikin orang berhenti scroll.\n"
+    "    ISI   — inti pesan, manfaat, atau demo produk.\n"
+    "    CTA   — satu ajakan yang jelas dan spesifik.\n"
+    "- Di tiap bagian: tulis baris VO/dialog dulu, lalu satu baris pendek "
+    "diawali 'Visual:' berisi saran shot, B-roll, atau text overlay.\n"
+    "- Tulis dalam teks biasa yang rapi. JANGAN pakai tabel markdown — naskah "
+    "ini akan di-copy ke aplikasi lain dan tabel akan berantakan.\n"
+    "- Kalau diminta beberapa opsi, kasih maksimal 3 dan bedakan sudut "
+    "pendekatannya, bukan cuma parafrase kalimat yang sama.\n\n"
+
+    "ATURAN PALING PENTING — JANGAN MENGARANG FAKTA\n"
+    "- Jangan pernah mengarang sendiri spesifikasi produk, harga, diskon, "
+    "tanggal promo, nama varian, klaim performa, atau angka/statistik apa pun "
+    "yang tidak ada di brief.\n"
+    "- Kalau butuh detail seperti itu, TANYA ke editor, atau tulis placeholder "
+    "yang jelas seperti [HARGA], [SPEK], atau [TANGGAL PROMO].\n"
+    "- Naskah ini dipakai untuk brand klien. Satu spesifikasi karangan itu "
+    "masalah klien, bukan sekadar masalah copy.\n\n"
+
+    "CARA KERJA\n"
+    "- Kalau brief-nya masih kurang lengkap, tanya maksimal 2-3 hal yang paling "
+    "penting saja, lalu tetap tulis draft-nya sambil menyebutkan asumsi yang "
+    "kamu pakai. Jangan menginterogasi editor.\n"
+    "- Kalau editor minta revisi, kerjakan bagian yang diminta, tapi tulis ulang "
+    "naskah lengkapnya supaya gampang di-copy sekali jalan.\n"
+)
+
+
+# The six formats the content team actually produces. Each one has a
+# genuinely different shape — a UGC testimonial and a tips-and-tricks video
+# share almost nothing structurally — so the type is sent with every turn
+# and appended to the system prompt rather than being stated once in the
+# opening message and forgotten ten turns later.
+CONTENT_TYPES = {
+    "education": (
+        "JENIS KONTEN: Education.\n"
+        "- Hook: buka dengan pertanyaan atau miskonsepsi yang bikin penonton mikir "
+        "\"lho, masa sih?\".\n"
+        "- Isi: 2-3 poin fakta, urut dan gampang dicerna. Satu poin satu kalimat.\n"
+        "- CTA: ajak simpan atau bagikan videonya, bukan jualan.\n"
+        "- Hindari nada menggurui. Posisikan penonton sebagai orang pintar yang "
+        "kebetulan belum tahu hal ini."
+    ),
+    "ugc": (
+        "JENIS KONTEN: UGC / testimoni.\n"
+        "- Tulis dari sudut pandang orang pertama sebagai pengguna asli, bukan brand.\n"
+        "- Hook: mulai dari pengalaman atau masalah pribadi yang spesifik.\n"
+        "- Isi: cerita apa yang berubah setelah pakai produknya, pakai detail "
+        "sehari-hari, bukan bahasa marketing.\n"
+        "- CTA: rekomendasi santai, seperti ngasih tahu teman.\n"
+        "- Bahasa harus terdengar spontan dan tidak sempurna. Kalau satu kalimat "
+        "terdengar seperti brosur, tulis ulang."
+    ),
+    "review": (
+        "JENIS KONTEN: Product review.\n"
+        "- Hook: bocorkan kesimpulan di depan (\"worth it atau nggak? ini jawabannya\").\n"
+        "- Isi: poin plus DAN minus. Review tanpa kekurangan tidak dipercaya penonton.\n"
+        "- Sebutkan untuk siapa produk ini cocok, dan untuk siapa tidak.\n"
+        "- CTA: arahkan ke link atau keranjang.\n"
+        "- Kalau kekurangannya tidak disebutkan di brief, tulis placeholder "
+        "[KEKURANGAN] dan tanyakan ke editor. Jangan mengarang kekurangan."
+    ),
+    "engagement": (
+        "JENIS KONTEN: Engagement / hiburan.\n"
+        "- Tujuan utamanya komentar dan share, bukan konversi.\n"
+        "- Hook: situasi relatable atau lucu yang langsung dikenali penonton.\n"
+        "- Isi: skit pendek, POV, atau situasi yang bisa diperankan talent.\n"
+        "- CTA: pancing komentar dengan pertanyaan yang gampang dijawab "
+        "(pilih A atau B, tag temanmu, dan sejenisnya).\n"
+        "- Produk boleh muncul, tapi jangan jadi bintang utamanya."
+    ),
+    "storytelling": (
+        "JENIS KONTEN: Storytelling.\n"
+        "- Pakai struktur cerita: setup singkat, konflik atau titik balik, resolusi.\n"
+        "- Hook: lempar langsung ke tengah konflik, jangan mulai dari latar belakang.\n"
+        "- Isi: satu cerita utuh saja. Video pendek tidak muat dua alur.\n"
+        "- CTA: lembut, muncul setelah resolusi, jangan memotong ceritanya.\n"
+        "- Emosi lebih penting daripada informasi di format ini."
+    ),
+    "tips": (
+        "JENIS KONTEN: Tips & tricks.\n"
+        "- Hook: janjikan hasil yang konkret (\"3 cara biar X jadi Y dalam semenit\").\n"
+        "- Isi: langkah bernomor, singkat, satu langkah satu baris VO.\n"
+        "- Tiap langkah harus bisa ditunjukkan secara visual — sebutkan shot-nya.\n"
+        "- CTA: ajak simpan videonya biar bisa dipraktikkan nanti.\n"
+        "- Jangan lebih dari 3-5 langkah untuk video pendek."
+    ),
+}
+
+CONTENT_TYPE_KEYS = tuple(CONTENT_TYPES)
+
+
+def _content_type_block(content_type: str | None) -> str:
+    guidance = CONTENT_TYPES.get((content_type or "").strip().lower())
+    return f"\n\n{guidance}\n" if guidance else ""
+
+
+class ScriptMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=MAX_SCRIPT_MESSAGE_CHARS)
+
+
+class ScriptChatPayload(BaseModel):
+    messages: list[ScriptMessage] = Field(min_length=1, max_length=120)
+    content_type: str | None = Field(default=None, max_length=40)
+
+
+# ── Caption Generator ───────────────────────────────────────────────────
+# Its own page, its own endpoint, but deliberately sharing this feature's
+# rate bucket, semaphore and log — it's the same kind of call with the same
+# cost profile, so it should be governed by the same limits.
+CAPTION_SEPARATOR = "==="
+CAPTION_MIN_OPTIONS = 2
+CAPTION_MAX_OPTIONS = 5
+
+CAPTION_SYSTEM_PROMPT = (
+    "Kamu adalah social media copywriter di Dragonworks AI Dept. Kamu menulis "
+    "caption untuk video pendek TikTok dan Instagram Reels.\n\n"
+
+    "BAHASA & GAYA\n"
+    "- Selalu tulis dalam Bahasa Indonesia.\n"
+    "- Ikuti register yang diminta editor. Default: santai-profesional.\n"
+    "- Kalimat pertama caption adalah hook — di TikTok dan Reels hanya baris itu "
+    "yang kelihatan sebelum penonton menekan 'more'. Jangan buang baris pertama "
+    "untuk basa-basi.\n"
+    "- Caption pendek: 1-3 kalimat. Jangan menulis paragraf panjang.\n"
+    "- Emoji boleh, secukupnya, dan hanya kalau cocok dengan tone-nya.\n\n"
+
+    "ATURAN PALING PENTING — JANGAN MENGARANG FAKTA\n"
+    "- Jangan pernah mengarang harga, diskon, spesifikasi, tanggal promo, atau "
+    "klaim performa yang tidak ada di brief. Pakai placeholder seperti [HARGA] "
+    "kalau memang dibutuhkan.\n\n"
+
+    "FORMAT OUTPUT (WAJIB DIIKUTI PERSIS)\n"
+    "- Tulis beberapa opsi caption yang BERBEDA SUDUT PENDEKATANNYA — bukan "
+    "parafrase dari kalimat yang sama.\n"
+    f"- Pisahkan setiap opsi dengan satu baris yang isinya hanya: {CAPTION_SEPARATOR}\n"
+    "- Setiap opsi terdiri dari: teks caption, lalu baris baru berisi hashtag "
+    "yang relevan (5-8 hashtag, campur yang umum dan yang spesifik).\n"
+    "- Jangan menomori opsinya. Jangan menulis judul, pengantar, atau penutup. "
+    "Jangan pakai markdown. Output HANYA opsi-opsi caption yang dipisahkan "
+    f"{CAPTION_SEPARATOR}."
+)
+
+
+class CaptionPayload(BaseModel):
+    brief: str = Field(min_length=1, max_length=MAX_SCRIPT_MESSAGE_CHARS)
+    content_type: str | None = Field(default=None, max_length=40)
+    tone: str | None = Field(default=None, max_length=120)
+    script: str | None = Field(default=None, max_length=MAX_SCRIPT_MESSAGE_CHARS)
+    count: int = Field(default=3, ge=CAPTION_MIN_OPTIONS, le=CAPTION_MAX_OPTIONS)
+
+
+# ── Thumbnail Caption Generator ─────────────────────────────────────────
+# The overlay words that sit ON the thumbnail image — a different job from
+# a post caption. This text gets read at roughly 200px wide in a scrolling
+# feed, so length is the whole craft constraint: a nicely written sentence
+# is useless here. The prompt enforces it, and the frontend shows a live
+# character count per option so an editor can see when one runs long.
+#
+# This is also what ThumbnailCreator's `headline` field expects (it must
+# appear verbatim in the generated image), so options are written to be
+# pasted straight in.
+THUMBNAIL_TEXT_MAX_CHARS = 28
+THUMBNAIL_TEXT_MAX_WORDS = 5
+
+THUMBNAIL_ANGLES = {
+    "penasaran":  "Pancing rasa penasaran — bikin orang harus klik untuk tahu jawabannya.",
+    "angka":      "Pakai angka konkret sebagai pusat perhatian.",
+    "manfaat":    "Langsung sebut hasil atau manfaat paling nyata buat penonton.",
+    "kontras":    "Pakai kontras atau before-after yang tajam.",
+    "klaim":      "Klaim berani dan tegas, tapi tetap jujur dan tidak mengarang.",
+}
+
+THUMBNAIL_TEXT_SYSTEM_PROMPT = (
+    "Kamu adalah art director yang menulis teks overlay untuk thumbnail video "
+    "pendek TikTok dan Instagram Reels.\n\n"
+
+    "YANG KAMU TULIS\n"
+    "- Teks besar yang ditempel DI ATAS gambar thumbnail. Bukan caption, bukan "
+    "judul postingan, bukan kalimat lengkap.\n"
+    "- Selalu dalam Bahasa Indonesia.\n\n"
+
+    "BATASAN PALING PENTING — PANJANG\n"
+    f"- Maksimal {THUMBNAIL_TEXT_MAX_WORDS} kata per opsi. Idealnya 2-4 kata.\n"
+    f"- Maksimal {THUMBNAIL_TEXT_MAX_CHARS} karakter per opsi, termasuk spasi.\n"
+    "- Teks ini dibaca selebar sekitar 200 piksel sambil orang scroll cepat. "
+    "Kalimat yang bagus tapi panjang sama saja tidak terbaca — itu kegagalan, "
+    "bukan pilihan gaya.\n"
+    "- Hindari kata yang sangat panjang; kata pendek lebih mudah dibaca kecil.\n\n"
+
+    "GAYA\n"
+    "- Tanpa emoji, tanpa hashtag, tanpa tanda baca berlebihan.\n"
+    "- Boleh HURUF KAPITAL SEMUA kalau itu memperkuat.\n"
+    "- Setiap opsi harus beda sudut pendekatannya, bukan parafrase.\n\n"
+
+    "JANGAN MENGARANG FAKTA\n"
+    "- Jangan pernah menulis harga, diskon, atau spesifikasi yang tidak ada di "
+    "brief. Pakai placeholder seperti [HARGA] kalau memang perlu.\n\n"
+
+    "FORMAT OUTPUT (WAJIB DIIKUTI PERSIS)\n"
+    f"- Pisahkan setiap opsi dengan satu baris yang isinya hanya: {CAPTION_SEPARATOR}\n"
+    "- Satu opsi = satu baris teks saja. Jangan menomori, jangan kasih judul, "
+    "jangan kasih penjelasan, jangan pakai tanda kutip, jangan pakai markdown."
+)
+
+
+# Only strips a real list marker: a bullet, or digits FOLLOWED BY "." or ")".
+# A bare leading number must survive — "3 DETIK LANGSUNG MULUS" and "5 CARA
+# EDIT CEPAT" are exactly the number-angle thumbnails this feature exists to
+# produce, and an earlier version of this cleanup ate them.
+_LIST_MARKER_RE = re.compile(r"^\s*(?:[-–—•*]|\d{1,2}\s*[.)])\s+")
+
+
+def _clean_thumbnail_option(option: str) -> str:
+    """Tidy one option: first line only, no list marker, no wrapping quotes."""
+    first_line = option.splitlines()[0].strip() if option.strip() else ""
+    first_line = _LIST_MARKER_RE.sub("", first_line).strip()
+    if len(first_line) >= 2 and first_line[0] == first_line[-1] and first_line[0] in "\"'“”‘’":
+        first_line = first_line[1:-1].strip()
+    return first_line.strip("“”‘’\"'").strip()
+
+
+class ThumbnailTextPayload(BaseModel):
+    brief: str = Field(min_length=1, max_length=MAX_SCRIPT_MESSAGE_CHARS)
+    content_type: str | None = Field(default=None, max_length=40)
+    angle: str | None = Field(default=None, max_length=40)
+    script: str | None = Field(default=None, max_length=MAX_SCRIPT_MESSAGE_CHARS)
+    count: int = Field(default=5, ge=CAPTION_MIN_OPTIONS, le=8)
+
+
+def _split_captions(raw: str) -> list[str]:
+    """
+    Split the model's output on the separator line.
+
+    Deliberately a delimiter rather than JSON: this feature has no schema and
+    no parse-failure path by design. If the model ignores the format, the
+    fallback is one option containing everything it wrote — degraded, but the
+    editor still gets usable text instead of an error.
+    """
+    parts = [part.strip() for part in raw.split(f"\n{CAPTION_SEPARATOR}") ]
+    parts = [part.lstrip(CAPTION_SEPARATOR).strip() for part in parts]
+    parts = [part for part in parts if part]
+    return parts or ([raw.strip()] if raw.strip() else [])
+
+
+def _enforce_script_rate_limit(request: Request) -> None:
+    user = getattr(request.state, "user", None)
+    identity = user["username"] if user else _client_key(request)
+    retry_after = _rate_limited("script", identity, SCRIPT_RATE_LIMIT, SCRIPT_RATE_WINDOW_S)
+    if retry_after:
+        raise HTTPException(
+            429,
+            detail="Terlalu banyak permintaan. Tunggu sebentar sebelum mencoba lagi.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+
+def _trim_script_history(messages: list[ScriptMessage]) -> list[dict]:
+    """Keep the most recent turns, within both a message-count and a total-character budget."""
+    trimmed = messages[-MAX_SCRIPT_MESSAGES:]
+    total = sum(len(m.content) for m in trimmed)
+    while len(trimmed) > 1 and total > MAX_SCRIPT_TOTAL_CHARS:
+        total -= len(trimmed[0].content)
+        trimmed = trimmed[1:]
+    if total > MAX_SCRIPT_TOTAL_CHARS:
+        raise HTTPException(413, detail="Pesan terakhir terlalu panjang. Persingkat lalu coba lagi.")
+    return [{"role": m.role, "content": m.content} for m in trimmed]
+
+
+def _looks_like_unsupported_param(exc: Exception) -> bool:
+    """
+    Whether a provider error is 'you sent a parameter I don't accept' rather
+    than a real failure. Lets one deployment work across model generations:
+    reasoning models want max_completion_tokens and accept reasoning_effort,
+    older chat models want max_tokens and reject both.
+    """
+    text = str(exc).lower()
+    mentions_param = any(
+        name in text for name in ("max_completion_tokens", "max_tokens", "reasoning_effort")
+    )
+    looks_rejected = any(
+        hint in text
+        for hint in ("unsupported", "unrecognized", "unknown", "not supported", "invalid_request")
+    )
+    return mentions_param and looks_rejected
+
+
+def openai_script_reply(history: list[dict], system_prompt: str = SCRIPT_SYSTEM_PROMPT) -> str:
+    from openai import OpenAI
+
+    client = OpenAI(api_key=OPENAI_API_KEY, timeout=SCRIPT_TIMEOUT_S, max_retries=1)
+    messages = [{"role": "system", "content": system_prompt}, *history]
+    modern = {
+        "model": SCRIPT_TEXT_MODEL,
+        "messages": messages,
+        "max_completion_tokens": SCRIPT_MAX_TOKENS,
+    }
+    legacy = {"model": SCRIPT_TEXT_MODEL, "messages": messages, "max_tokens": SCRIPT_MAX_TOKENS}
+
+    attempts = []
+    if SCRIPT_REASONING_EFFORT:
+        attempts.append({**modern, "reasoning_effort": SCRIPT_REASONING_EFFORT})
+    attempts.append(modern)
+    attempts.append(legacy)
+
+    last_exc: Exception | None = None
+    for index, kwargs in enumerate(attempts):
+        try:
+            response = client.chat.completions.create(**kwargs)
+            return (response.choices[0].message.content or "").strip()
+        except Exception as exc:
+            is_last = index == len(attempts) - 1
+            if is_last or not (_looks_like_unsupported_param(exc) or isinstance(exc, TypeError)):
+                raise
+            logger.info(
+                "Script model rejected a parameter, retrying with a simpler call [error_type=%s]",
+                type(exc).__name__,
+            )
+            last_exc = exc
+    raise last_exc if last_exc else RuntimeError("Script provider produced no response.")
+
+
+def gemini_script_reply(history: list[dict], system_prompt: str = SCRIPT_SYSTEM_PROMPT) -> str:
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(
+        api_key=GEMINI_API_KEY,
+        http_options=types.HttpOptions(timeout=SCRIPT_TIMEOUT_S * 1000),
+    )
+    contents = [
+        types.Content(
+            role="user" if message["role"] == "user" else "model",
+            parts=[types.Part(text=message["content"])],
+        )
+        for message in history
+    ]
+    response = client.models.generate_content(
+        model=SCRIPT_TEXT_MODEL,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            max_output_tokens=SCRIPT_MAX_TOKENS,
+        ),
+    )
+    return (response.text or "").strip()
+
+
+async def _run_script_call(func, *args, **kwargs):
+    """Same shape as _run_provider_call, but on the script-only semaphore."""
+    try:
+        await asyncio.wait_for(_SCRIPT_SEMAPHORE.acquire(), timeout=15)
+    except TimeoutError as exc:
+        raise HTTPException(503, detail="Asisten naskah sedang sibuk. Coba lagi sebentar.") from exc
+    try:
+        return await run_in_threadpool(func, *args, **kwargs)
+    finally:
+        _SCRIPT_SEMAPHORE.release()
+
+
+def _script_failure(exc: Exception) -> HTTPException:
+    """
+    In production this stays deliberately opaque — provider SDK errors can
+    carry request metadata, and the rest of this app never echoes them to
+    clients (see the note in enrich_openai_prompt). Locally, though, that
+    same opacity makes a misconfigured model name almost undebuggable, so
+    when APP_ENV isn't production we surface the real message. Same
+    dev-only-visibility tradeoff as EXPOSE_API_DOCS.
+    """
+    incident_id = secrets.token_hex(4)
+    detail = f"Asisten naskah tidak dapat menyelesaikan permintaan. Referensi: {incident_id}"
+
+    if IS_PRODUCTION:
+        logger.warning(
+            "Script assistant request failed [incident=%s, error_type=%s]",
+            incident_id,
+            type(exc).__name__,
+        )
+    else:
+        message = str(exc).strip().replace("\n", " ")[:400] or "(no message)"
+        logger.warning(
+            "Script assistant request failed [incident=%s, model=%s, provider=%s, error_type=%s]: %s",
+            incident_id,
+            SCRIPT_TEXT_MODEL,
+            SCRIPT_PROVIDER,
+            type(exc).__name__,
+            message,
+        )
+        detail = (
+            f"{detail}\n\n[dev only] {type(exc).__name__} "
+            f"(model={SCRIPT_TEXT_MODEL}, provider={SCRIPT_PROVIDER}): {message}"
+        )
+
+    return HTTPException(502, detail=detail)
+
+
+# Separate from GENERATION_LOG on purpose — see the note at the top of this
+# section. Text-only, so entries are small; prompt/reply are still truncated
+# so one very long consult can't dominate the buffer.
+SCRIPT_LOG = []
+_SCRIPT_LOG_LOCK = threading.Lock()
+SCRIPT_LOG_MAX = _env_int("SCRIPT_LOG_MAX", 100, 0, 500)
+_SCRIPT_LOG_FIELD_CHARS = 4_000
+
+
+def log_script(request: Request, *, prompt: str, reply: str, provider: str, model: str,
+               kind: str = "script", content_type: str | None = None) -> None:
+    if SCRIPT_LOG_MAX == 0:
+        return
+    with _SCRIPT_LOG_LOCK:
+        SCRIPT_LOG.insert(0, {
+            "username":     current_username(request),
+            "kind":         kind,           # "script" | "caption"
+            "content_type": content_type,
+            "prompt":       prompt[:_SCRIPT_LOG_FIELD_CHARS],
+            "reply":        reply[:_SCRIPT_LOG_FIELD_CHARS],
+            "provider":     provider,
+            "model":        model,
+            "ts":           datetime.now(timezone.utc).isoformat(),
+        })
+        del SCRIPT_LOG[SCRIPT_LOG_MAX:]
+
+
+def _resolve_script_provider() -> str:
+    provider = SCRIPT_PROVIDER if SCRIPT_PROVIDER in {"openai", "gemini"} else "openai"
+    if provider == "openai" and not OPENAI_API_KEY:
+        raise HTTPException(503, detail="The script assistant is not configured (OPENAI_API_KEY is unset).")
+    if provider == "gemini" and not GEMINI_API_KEY:
+        raise HTTPException(503, detail="The script assistant is not configured (GEMINI_API_KEY is unset).")
+    return provider
+
+
+@app.get("/api/script/content-types")
+def script_content_types():
+    """Lets the frontend build its dropdown from one source of truth."""
+    return {"success": True, "content_types": list(CONTENT_TYPE_KEYS)}
+
+
+@app.post("/api/script")
+async def script_chat(request: Request, payload: ScriptChatPayload):
+    provider = _resolve_script_provider()
+
+    history = _trim_script_history(payload.messages)
+    if history[-1]["role"] != "user":
+        raise HTTPException(400, detail="The last message must come from the user.")
+
+    _enforce_script_rate_limit(request)
+
+    # Re-sent every turn rather than stated once in the opening message, so a
+    # long refinement conversation can't drift off the chosen format.
+    system_prompt = SCRIPT_SYSTEM_PROMPT + _content_type_block(payload.content_type)
+    call = openai_script_reply if provider == "openai" else gemini_script_reply
+    try:
+        reply = await _run_script_call(call, history, system_prompt)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _script_failure(exc) from exc
+
+    if not reply:
+        raise HTTPException(
+            502,
+            detail="Asisten naskah mengembalikan balasan kosong. Coba lagi, "
+                   "atau naikkan SCRIPT_MAX_TOKENS jika ini sering terjadi.",
+        )
+
+    log_script(
+        request,
+        prompt=history[-1]["content"],
+        reply=reply,
+        provider=provider,
+        model=SCRIPT_TEXT_MODEL,
+        kind="script",
+        content_type=payload.content_type,
+    )
+    return {
+        "success":  True,
+        "id":       str(uuid.uuid4())[:8],
+        "reply":    reply,
+        "provider": provider,
+        "model":    SCRIPT_TEXT_MODEL,
+    }
+
+
+@app.post("/api/caption")
+async def caption_generate(request: Request, payload: CaptionPayload):
+    provider = _resolve_script_provider()
+    _enforce_script_rate_limit(request)
+
+    brief = _bounded_text(payload.brief, "Brief", MAX_SCRIPT_MESSAGE_CHARS, required=True)
+    lines = [f"Buatkan {payload.count} opsi caption untuk video pendek ini.", "", f"BRIEF:\n{brief}"]
+    if payload.tone:
+        lines.append(f"\nTONE YANG DIMINTA: {payload.tone.strip()}")
+    if payload.script:
+        # The "intertwined with script generator" part of the brief: captions
+        # written against the actual script read far better than captions
+        # written from a one-line summary of it.
+        script_text = payload.script.strip()[:MAX_SCRIPT_MESSAGE_CHARS]
+        lines.append(f"\nNASKAH VIDEONYA (pakai ini sebagai acuan isi dan tone):\n{script_text}")
+    prompt = "\n".join(lines)
+
+    system_prompt = CAPTION_SYSTEM_PROMPT + _content_type_block(payload.content_type)
+    call = openai_script_reply if provider == "openai" else gemini_script_reply
+    try:
+        raw = await _run_script_call(call, [{"role": "user", "content": prompt}], system_prompt)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _script_failure(exc) from exc
+
+    if not raw:
+        raise HTTPException(
+            502,
+            detail="Caption generator mengembalikan balasan kosong. Coba lagi, "
+                   "atau naikkan SCRIPT_MAX_TOKENS jika ini sering terjadi.",
+        )
+
+    captions = _split_captions(raw)
+    log_script(
+        request,
+        prompt=prompt,
+        reply=raw,
+        provider=provider,
+        model=SCRIPT_TEXT_MODEL,
+        kind="caption",
+        content_type=payload.content_type,
+    )
+    return {
+        "success":  True,
+        "id":       str(uuid.uuid4())[:8],
+        "captions": captions,
+        "provider": provider,
+        "model":    SCRIPT_TEXT_MODEL,
+    }
+
+
+@app.post("/api/thumbnail-caption")
+async def thumbnail_caption(request: Request, payload: ThumbnailTextPayload):
+    provider = _resolve_script_provider()
+    _enforce_script_rate_limit(request)
+
+    brief = _bounded_text(payload.brief, "Brief", MAX_SCRIPT_MESSAGE_CHARS, required=True)
+    lines = [f"Buatkan {payload.count} opsi teks thumbnail untuk video ini.", "", f"BRIEF:\n{brief}"]
+
+    angle = THUMBNAIL_ANGLES.get((payload.angle or "").strip().lower())
+    if angle:
+        lines.append(f"\nSUDUT PENDEKATAN YANG DIMINTA: {angle}")
+    else:
+        lines.append(
+            "\nSUDUT PENDEKATAN: campur — buat opsi yang bervariasi (rasa penasaran, "
+            "angka, manfaat, kontras, klaim berani)."
+        )
+    if payload.script:
+        lines.append(
+            "\nNASKAH VIDEONYA (ambil kata kunci paling kuat dari sini):\n"
+            f"{payload.script.strip()[:MAX_SCRIPT_MESSAGE_CHARS]}"
+        )
+    prompt = "\n".join(lines)
+
+    system_prompt = THUMBNAIL_TEXT_SYSTEM_PROMPT + _content_type_block(payload.content_type)
+    call = openai_script_reply if provider == "openai" else gemini_script_reply
+    try:
+        raw = await _run_script_call(call, [{"role": "user", "content": prompt}], system_prompt)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _script_failure(exc) from exc
+
+    if not raw:
+        raise HTTPException(
+            502,
+            detail="Thumbnail caption generator mengembalikan balasan kosong. Coba lagi, "
+                   "atau naikkan SCRIPT_MAX_TOKENS jika ini sering terjadi.",
+        )
+
+    options = [cleaned for cleaned in (_clean_thumbnail_option(o) for o in _split_captions(raw)) if cleaned]
+
+    log_script(
+        request,
+        prompt=prompt,
+        reply=raw,
+        provider=provider,
+        model=SCRIPT_TEXT_MODEL,
+        kind="thumbnail",
+        content_type=payload.content_type,
+    )
+    return {
+        "success":   True,
+        "id":        str(uuid.uuid4())[:8],
+        "options":   options,
+        "max_chars": THUMBNAIL_TEXT_MAX_CHARS,
+        "max_words": THUMBNAIL_TEXT_MAX_WORDS,
+        "provider":  provider,
+        "model":     SCRIPT_TEXT_MODEL,
+    }
+
+
+@app.get("/api/admin/scripts")
+def admin_scripts(request: Request):
+    if not AUTH_REQUIRED:
+        raise HTTPException(400, detail="Login is not configured on this server (APP_USERS is unset).")
+    user = getattr(request.state, "user", None)
+    if not user or user.get("role") != "admin":
+        raise HTTPException(403, detail="Admin access required.")
+    with _SCRIPT_LOG_LOCK:
+        return {"success": True, "scripts": list(SCRIPT_LOG)}
 
 
 # ── Serve the built frontend (production only) ──────────────────────────
