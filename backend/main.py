@@ -1273,6 +1273,8 @@ def status():
         # but this function only runs after the module has fully loaded.
         "script_provider": SCRIPT_PROVIDER,
         "script_model": SCRIPT_TEXT_MODEL,
+        "caption_model": OPENAI_CAPTION_TEXT_MODEL if SCRIPT_PROVIDER == "openai" else SCRIPT_TEXT_MODEL,
+        "thumbnail_caption_model": OPENAI_CAPTION_TEXT_MODEL if SCRIPT_PROVIDER == "openai" else SCRIPT_TEXT_MODEL,
         "script_ready": bool(OPENAI_API_KEY if SCRIPT_PROVIDER == "openai" else GEMINI_API_KEY),
     }
 
@@ -1596,6 +1598,7 @@ def _default_script_model(provider: str) -> str:
 
 
 SCRIPT_TEXT_MODEL = _default_script_model(SCRIPT_PROVIDER)
+OPENAI_CAPTION_TEXT_MODEL = os.getenv("OPENAI_CAPTION_TEXT_MODEL", "gpt-6-luna").strip() or "gpt-6-luna"
 # Generous by default: the GPT-5 family are reasoning models, and reasoning
 # tokens are drawn from this same budget — set it too low and the model can
 # burn the whole allowance thinking and return empty content.
@@ -1929,17 +1932,19 @@ def _looks_like_unsupported_param(exc: Exception) -> bool:
     return mentions_param and looks_rejected
 
 
-def openai_script_reply(history: list[dict], system_prompt: str = SCRIPT_SYSTEM_PROMPT) -> str:
+def openai_script_reply(history: list[dict], system_prompt: str = SCRIPT_SYSTEM_PROMPT,
+                        *, model: str | None = None) -> str:
     from openai import OpenAI
 
     client = OpenAI(api_key=OPENAI_API_KEY, timeout=SCRIPT_TIMEOUT_S, max_retries=1)
     messages = [{"role": "system", "content": system_prompt}, *history]
+    selected_model = model or SCRIPT_TEXT_MODEL
     modern = {
-        "model": SCRIPT_TEXT_MODEL,
+        "model": selected_model,
         "messages": messages,
         "max_completion_tokens": SCRIPT_MAX_TOKENS,
     }
-    legacy = {"model": SCRIPT_TEXT_MODEL, "messages": messages, "max_tokens": SCRIPT_MAX_TOKENS}
+    legacy = {"model": selected_model, "messages": messages, "max_tokens": SCRIPT_MAX_TOKENS}
 
     attempts = []
     if SCRIPT_REASONING_EFFORT:
@@ -1964,7 +1969,8 @@ def openai_script_reply(history: list[dict], system_prompt: str = SCRIPT_SYSTEM_
     raise last_exc if last_exc else RuntimeError("Script provider produced no response.")
 
 
-def gemini_script_reply(history: list[dict], system_prompt: str = SCRIPT_SYSTEM_PROMPT) -> str:
+def gemini_script_reply(history: list[dict], system_prompt: str = SCRIPT_SYSTEM_PROMPT,
+                        *, model: str | None = None) -> str:
     from google import genai
     from google.genai import types
 
@@ -1980,7 +1986,7 @@ def gemini_script_reply(history: list[dict], system_prompt: str = SCRIPT_SYSTEM_
         for message in history
     ]
     response = client.models.generate_content(
-        model=SCRIPT_TEXT_MODEL,
+        model=model or SCRIPT_TEXT_MODEL,
         contents=contents,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
@@ -2002,7 +2008,7 @@ async def _run_script_call(func, *args, **kwargs):
         _SCRIPT_SEMAPHORE.release()
 
 
-def _script_failure(exc: Exception) -> HTTPException:
+def _script_failure(exc: Exception, *, model: str | None = None) -> HTTPException:
     """
     In production this stays deliberately opaque — provider SDK errors can
     carry request metadata, and the rest of this app never echoes them to
@@ -2025,14 +2031,14 @@ def _script_failure(exc: Exception) -> HTTPException:
         logger.warning(
             "Script assistant request failed [incident=%s, model=%s, provider=%s, error_type=%s]: %s",
             incident_id,
-            SCRIPT_TEXT_MODEL,
+            model or SCRIPT_TEXT_MODEL,
             SCRIPT_PROVIDER,
             type(exc).__name__,
             message,
         )
         detail = (
             f"{detail}\n\n[dev only] {type(exc).__name__} "
-            f"(model={SCRIPT_TEXT_MODEL}, provider={SCRIPT_PROVIDER}): {message}"
+            f"(model={model or SCRIPT_TEXT_MODEL}, provider={SCRIPT_PROVIDER}): {message}"
         )
 
     return HTTPException(502, detail=detail)
@@ -2129,6 +2135,7 @@ async def script_chat(request: Request, payload: ScriptChatPayload):
 @app.post("/api/caption")
 async def caption_generate(request: Request, payload: CaptionPayload):
     provider = _resolve_script_provider()
+    model = OPENAI_CAPTION_TEXT_MODEL if provider == "openai" else SCRIPT_TEXT_MODEL
     _enforce_script_rate_limit(request)
 
     brief = _bounded_text(payload.brief, "Brief", MAX_SCRIPT_MESSAGE_CHARS, required=True)
@@ -2146,11 +2153,11 @@ async def caption_generate(request: Request, payload: CaptionPayload):
     system_prompt = CAPTION_SYSTEM_PROMPT + _content_type_block(payload.content_type)
     call = openai_script_reply if provider == "openai" else gemini_script_reply
     try:
-        raw = await _run_script_call(call, [{"role": "user", "content": prompt}], system_prompt)
+        raw = await _run_script_call(call, [{"role": "user", "content": prompt}], system_prompt, model=model)
     except HTTPException:
         raise
     except Exception as exc:
-        raise _script_failure(exc) from exc
+        raise _script_failure(exc, model=model) from exc
 
     if not raw:
         raise HTTPException(
@@ -2165,7 +2172,7 @@ async def caption_generate(request: Request, payload: CaptionPayload):
         prompt=prompt,
         reply=raw,
         provider=provider,
-        model=SCRIPT_TEXT_MODEL,
+        model=model,
         kind="caption",
         content_type=payload.content_type,
     )
@@ -2174,13 +2181,14 @@ async def caption_generate(request: Request, payload: CaptionPayload):
         "id":       str(uuid.uuid4())[:8],
         "captions": captions,
         "provider": provider,
-        "model":    SCRIPT_TEXT_MODEL,
+        "model":    model,
     }
 
 
 @app.post("/api/thumbnail-caption")
 async def thumbnail_caption(request: Request, payload: ThumbnailTextPayload):
     provider = _resolve_script_provider()
+    model = OPENAI_CAPTION_TEXT_MODEL if provider == "openai" else SCRIPT_TEXT_MODEL
     _enforce_script_rate_limit(request)
 
     brief = _bounded_text(payload.brief, "Brief", MAX_SCRIPT_MESSAGE_CHARS, required=True)
@@ -2204,11 +2212,11 @@ async def thumbnail_caption(request: Request, payload: ThumbnailTextPayload):
     system_prompt = THUMBNAIL_TEXT_SYSTEM_PROMPT + _content_type_block(payload.content_type)
     call = openai_script_reply if provider == "openai" else gemini_script_reply
     try:
-        raw = await _run_script_call(call, [{"role": "user", "content": prompt}], system_prompt)
+        raw = await _run_script_call(call, [{"role": "user", "content": prompt}], system_prompt, model=model)
     except HTTPException:
         raise
     except Exception as exc:
-        raise _script_failure(exc) from exc
+        raise _script_failure(exc, model=model) from exc
 
     if not raw:
         raise HTTPException(
@@ -2224,7 +2232,7 @@ async def thumbnail_caption(request: Request, payload: ThumbnailTextPayload):
         prompt=prompt,
         reply=raw,
         provider=provider,
-        model=SCRIPT_TEXT_MODEL,
+        model=model,
         kind="thumbnail",
         content_type=payload.content_type,
     )
@@ -2235,7 +2243,7 @@ async def thumbnail_caption(request: Request, payload: ThumbnailTextPayload):
         "max_chars": THUMBNAIL_TEXT_MAX_CHARS,
         "max_words": THUMBNAIL_TEXT_MAX_WORDS,
         "provider":  provider,
-        "model":     SCRIPT_TEXT_MODEL,
+        "model":     model,
     }
 
 

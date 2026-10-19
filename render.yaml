@@ -31,6 +31,8 @@ services:
         value: openai
       - key: SCRIPT_TEXT_MODEL
         value: gpt-5.4-mini
+      - key: OPENAI_CAPTION_TEXT_MODEL
+        value: gpt-6-luna
       # Generous on purpose — the GPT-5 family are reasoning models and
       # reasoning tokens come out of this same budget. Too low and the
       # model can spend the whole allowance thinking and return nothing.
