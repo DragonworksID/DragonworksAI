@@ -144,6 +144,25 @@ class SecurityRegressionTests(unittest.TestCase):
         self.assertTrue(response.json()["image"])
         self.assertEqual(len(main.GENERATION_LOG), 1)
 
+    def test_thumbnail_only_accepts_openai(self):
+        kwargs = {
+            "request": None,
+            "headline": "Test",
+            "notes": "",
+            "custom_prompt": "",
+            "provider": "gemini",
+            "quality": "low",
+            "enrich_prompt": "0",
+            "preserve_face": "0",
+            "background_image": object(),
+            "base_image": object(),
+            "extra_product_images": [],
+        }
+        with self.assertRaises(main.HTTPException) as rejected:
+            # Provider validation runs before the route's first await.
+            main.generate_thumbnail(**kwargs).send(None)
+        self.assertEqual(rejected.exception.status_code, 400)
+
     def test_provider_failures_do_not_leak_upstream_details(self):
         self.client.post(
             "/api/login",

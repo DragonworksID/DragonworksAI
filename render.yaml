@@ -36,6 +36,14 @@ services:
       # model can spend the whole allowance thinking and return nothing.
       - key: SCRIPT_MAX_TOKENS
         value: "3000"
+      - key: OPENAI_THUMBNAIL_IMAGE_MODEL
+        value: gpt-image-2
+      - key: OPENAI_USE_RESPONSES_API
+        value: "1"
+      - key: OPENAI_RESPONSES_MODEL
+        value: gpt-6-luna
+      - key: OPENAI_TEXT_MODEL
+        value: gpt-6-luna
       # Set the actual values in the Render dashboard (Environment tab) —
       # `sync: false` just means "required, but don't store the value in
       # this file / git history".

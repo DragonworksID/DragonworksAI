@@ -651,29 +651,18 @@ PROVIDER_TIMEOUT_S = _env_int("PROVIDER_TIMEOUT_SECONDS", 180, 30, 600)
 # if the quality bump isn't worth the extra cost for your team.
 GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3-pro-image")
 
-# Cheap text model used to "enrich" the thumbnail prompt before it's sent to
-# the image model — rewrites vague instructions into concrete, specific
-# visual details (actual colors read from the photos, specific realistic
-# props, a specific light direction) the way a human creative director (or
-# ChatGPT, which does this automatically) would. This is what closes most of
-# the gap between "technically correct instructions" and "actually looks
-# premium." Text tokens are extremely cheap, so this adds well under a cent
-# per generation. Set ENABLE_PROMPT_ENRICHMENT=0 to disable it.
+# Text model for the Script Generator when its provider is Gemini.
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-flash-lite")
-ENABLE_PROMPT_ENRICHMENT = os.getenv("ENABLE_PROMPT_ENRICHMENT", "1") != "0"
 
-# ── OpenAI (gpt-image-2) — alternate image provider ─────────────────────
-# Set OPENAI_API_KEY to enable this as a choice. The frontend sends which
-# provider to use per-request ("gemini" or "openai"); DEFAULT_IMAGE_PROVIDER
-# below only controls the fallback for callers that don't specify one.
+# ── OpenAI thumbnail and photo editing ────────────────────────────────
 OPENAI_API_KEY      = os.getenv("OPENAI_API_KEY", "")
 OPENAI_IMAGE_MODEL   = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-2")
+OPENAI_THUMBNAIL_IMAGE_MODEL = os.getenv("OPENAI_THUMBNAIL_IMAGE_MODEL", "gpt-image-2")
 # Fallback only — the frontend now sends a "quality" field per request
 # (low/medium/high), so this env var just covers callers that don't specify
 # one. Defaults to "medium" rather than "high" to avoid surprise cost spikes
 # (roughly $0.005 low / $0.041 medium / $0.165 high per portrait image).
 OPENAI_IMAGE_QUALITY = os.getenv("OPENAI_IMAGE_QUALITY", "medium")  # "high" | "medium" | "low"
-DEFAULT_IMAGE_PROVIDER = os.getenv("IMAGE_PROVIDER", "gemini")  # "gemini" | "openai"
 
 # Which underlying call OpenAI generations use. Confirmed via OpenAI's own
 # docs: `images.edit` treats the first input image as a literal edit target
@@ -689,52 +678,20 @@ DEFAULT_IMAGE_PROVIDER = os.getenv("IMAGE_PROVIDER", "gemini")  # "gemini" | "op
 # — see OPENAI_RESPONSES_MODEL below for details. Set this to 0 to fall back
 # to the legacy images.edit path for fully flat/predictable per-image cost.
 OPENAI_USE_RESPONSES_API = os.getenv("OPENAI_USE_RESPONSES_API", "1") != "0"
-# The Responses API takes a text-capable "orchestrator" model here (NOT
-# gpt-image-2 directly — the docs are explicit that gpt-image-2 isn't a valid
-# value for this field); it picks the underlying image model for you when
-# the image_generation tool runs.
-#
-# CORRECTION (this used to default to gpt-5.4-mini with a comment claiming
-# "small fraction of a cent" extra cost — that was wrong and shipped without
-# being verified against real pricing, sorry). Two things make the Responses
-# API path meaningfully pricier than the flat "Low/Medium/High" per-image
-# costs shown in the UI (those numbers only ever applied to the legacy
-# images.edit path below):
-#   1. gpt-5.4-mini isn't cheap: $0.375/M input, $2.25/M output tokens —
-#      roughly 6-7x pricier per token than gpt-5-nano.
-#   2. OpenAI's own developer community has confirmed the Responses API's
-#      image_generation tool bills your reference photos as vision INPUT
-#      tokens at the orchestrator's rate, plus reasoning/output tokens for
-#      the tool-orchestration step, on top of the image render itself — none
-#      of which is itemized or flat-priced the way images.edit is.
-# Defaulting to gpt-5-nano now to cut the token-rate portion of that by
-# ~6-7x. This does NOT make the per-generation cost fully predictable or
-# equal to the old flat estimates — check your OpenAI usage dashboard for
-# actual spend, and set OPENAI_USE_RESPONSES_API=0 below if you want fully
-# flat, predictable per-image pricing back (at the cost of the flat-paste
-# quality issue that path has).
-OPENAI_RESPONSES_MODEL = os.getenv("OPENAI_RESPONSES_MODEL", "gpt-5-nano")
+# The Responses model coordinates image generation and is billed separately
+# from the selected GPT Image model.
+OPENAI_RESPONSES_MODEL = os.getenv("OPENAI_RESPONSES_MODEL", "gpt-6-luna")
 
-# Cheap OpenAI vision-capable text model used ONLY to replicate the invisible
+# OpenAI vision-capable text model used ONLY to replicate the invisible
 # prompt-rewriting step ChatGPT's own image tool performs before every
 # generation (confirmed via OpenAI's own docs/community: ChatGPT always
 # rewrites whatever you type into a longer, more detailed, vivid prompt
 # before it reaches the image model — that step is why results generated
 # through the ChatGPT UI look more polished than the exact same text sent
-# raw through the API). gpt-5-nano supports image input and is extremely
-# cheap (~$0.05/M input, $0.40/M output tokens), so this adds a small
-# fraction of a cent per generation. Set ENABLE_OPENAI_PROMPT_ENRICHMENT=0
-# to send presets fully raw again.
-OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-5-nano")
+# raw through the API). Set ENABLE_OPENAI_PROMPT_ENRICHMENT=0 to skip this
+# optional rewrite.
+OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-6-luna")
 ENABLE_OPENAI_PROMPT_ENRICHMENT = os.getenv("ENABLE_OPENAI_PROMPT_ENRICHMENT", "1") != "0"
-
-# Note: the Gemini prompt-enrichment step further below always uses Gemini's
-# cheap text model regardless of which provider generates the final image —
-# it's just a text rewrite, and Gemini's flash-lite is cheap enough that
-# there's no need to duplicate that logic for OpenAI's Gemini-specific
-# guardrail path. This means GEMINI_API_KEY must stay set even if you're
-# only using the OpenAI provider for final images.
-
 
 def build_prompt(data: dict) -> str:
     lines = ["Generate a high-quality image with these specifications:\n"]
@@ -798,57 +755,6 @@ def gemini_generate(prompt: str, ref_bytes: bytes | None = None,
                 response_modalities=["TEXT", "IMAGE"]
             ),
         )
-
-    for part in response.candidates[0].content.parts:
-        if part.inline_data is not None:
-            data = part.inline_data.data
-            return data if isinstance(data, bytes) else base64.b64decode(data)
-
-    raise RuntimeError("Gemini returned no image. Check your API key and quota.")
-
-
-def gemini_generate_thumbnail(prompt: str,
-                              bg_bytes: bytes, bg_mime: str,
-                              base_bytes: bytes, base_mime: str,
-                              extra_base_images: list | None = None) -> bytes:
-    """
-    Composite a thumbnail from a background photo + base (talent/product)
-    photo. `extra_base_images` (optional list of (bytes, mime) tuples) are
-    additional product photos for "Multiple Product Reference" mode — e.g.
-    LEGO MultiP, which merges several products into one shot.
-    """
-    from google import genai
-    from google.genai import types
-
-    client = genai.Client(
-        api_key=GEMINI_API_KEY,
-        http_options=types.HttpOptions(timeout=PROVIDER_TIMEOUT_S * 1000),
-    )
-
-    # NOTE: these captions are intentionally neutral labels only — no
-    # instructions about what to DO with each image live here. All actual
-    # creative direction (what to cut out, what to keep, what to relight,
-    # etc.) comes entirely from `prompt`, which differs between the default
-    # auto-built flow and a brand preset. Baking instructions into the
-    # captions would silently override/contradict whatever a preset says.
-    contents = [
-        types.Part(text="BACKGROUND PHOTO (image 1):"),
-        types.Part(inline_data=types.Blob(data=bg_bytes, mime_type=bg_mime)),
-        types.Part(text="BASE PHOTO (image 2):"),
-        types.Part(inline_data=types.Blob(data=base_bytes, mime_type=base_mime)),
-    ]
-    for i, (extra_bytes, extra_mime) in enumerate(extra_base_images or []):
-        contents.append(types.Part(text=f"ADDITIONAL PRODUCT PHOTO (image {i + 3}):"))
-        contents.append(types.Part(inline_data=types.Blob(data=extra_bytes, mime_type=extra_mime)))
-    contents.append(types.Part(text=prompt))
-
-    response = client.models.generate_content(
-        model=GEMINI_IMAGE_MODEL,
-        contents=contents,
-        config=types.GenerateContentConfig(
-            response_modalities=["TEXT", "IMAGE"]
-        ),
-    )
 
     for part in response.candidates[0].content.parts:
         if part.inline_data is not None:
@@ -990,6 +896,7 @@ def _openai_generate_thumbnail_responses(prompt: str,
         ],
         tools=[{
             "type": "image_generation",
+            "model": OPENAI_THUMBNAIL_IMAGE_MODEL,
             "size": "1024x1536",
             "quality": quality,
             # Explicitly force full generation rather than letting the tool
@@ -1044,7 +951,7 @@ def _openai_generate_thumbnail_edit(prompt: str,
         extra_files.append(f)
 
     result = client.images.edit(
-        model=OPENAI_IMAGE_MODEL,
+        model=OPENAI_THUMBNAIL_IMAGE_MODEL,
         image=[base_file, *extra_files, bg_file],
         prompt=prompt,
         size="1024x1536",
@@ -1150,10 +1057,8 @@ def enrich_openai_prompt(base_prompt: str, headline: str,
     the most likely reason API results look flatter/less polished than the
     exact same brief run interactively in ChatGPT.
 
-    This is mostly NOT the same as `enrich_thumbnail_prompt()` (the
-    Gemini-only enrichment): it's primarily a vividness pass, not a general
-    "do not do X" guardrail pass, so the creative direction you already
-    wrote stays in charge. It carries exactly ONE deliberate exception,
+    This is primarily a vividness pass, so the creative direction you already
+    wrote stays in charge. It carries one deliberate exception,
     added after live A/B testing (same preset, enrichment confirmed running,
     tested at both Low and Medium quality) showed `images.edit` reliably
     reproduces the background reference photo's literal flat illustration
@@ -1163,9 +1068,7 @@ def enrich_openai_prompt(base_prompt: str, headline: str,
     background-handling rule) rather than left implicit, since implicit
     wording alone was empirically shown not to be enough.
 
-    Uses OpenAI's own gpt-5-nano (cheap, vision-capable) rather than Gemini,
-    so the rewrite is produced in the same "house style" as the model that
-    will actually render the image.
+    Uses the configured OpenAI vision-capable text model.
 
     Falls back to the original prompt untouched if anything goes wrong, if
     ENABLE_OPENAI_PROMPT_ENRICHMENT is turned off server-wide, or if the
@@ -1300,85 +1203,6 @@ def enrich_openai_prompt(base_prompt: str, headline: str,
         return base_prompt, False, "Prompt enrichment was unavailable."
 
 
-def enrich_thumbnail_prompt(base_prompt: str, headline: str,
-                            bg_bytes: bytes, bg_mime: str,
-                            base_bytes: bytes, base_mime: str) -> str:
-    """
-    Ask a cheap text model to rewrite the brief into a more concrete, vivid
-    version — grounded in what it actually sees in the two reference photos
-    (real colors, plausible real-world props, a specific light direction),
-    instead of the generic phrasing our presets/build_thumbnail_prompt use.
-    This mirrors what tools like ChatGPT do automatically before generating
-    an image, and is a big part of why those results can look more premium
-    even on an otherwise-similar brief.
-
-    Falls back to the original prompt untouched if anything goes wrong —
-    enrichment should never be the reason a generation fails.
-    """
-    if not ENABLE_PROMPT_ENRICHMENT:
-        return base_prompt
-
-    from google import genai
-    from google.genai import types
-
-    client = genai.Client(
-        api_key=GEMINI_API_KEY,
-        http_options=types.HttpOptions(timeout=PROVIDER_TIMEOUT_S * 1000),
-    )
-
-    instruction = (
-        "You are a creative director briefing a photo-compositing AI. Look at the two "
-        "reference photos below (a background/campaign template, and a base photo of a "
-        "product or talent) and REWRITE the brief that follows into a more vivid, concrete "
-        "version of the exact same brief.\n\n"
-        "Rules:\n"
-        "- Keep every hard requirement and constraint from the original brief (output size, "
-        "headline text, what must NOT change, any 'do not do X' warnings).\n"
-        "- First, explicitly describe in one sentence exactly which side/angle/view of the "
-        "product or subject is visible in the base photo (e.g. 'the back of the device, "
-        "screen facing away from camera, hinge on the left') and state that this exact "
-        "view must be preserved unchanged — the compositing AI must NOT rotate the object, "
-        "reveal a different side, or invent screen/display content that isn't visible here.\n"
-        "- Replace vague or generic phrases with specific visual details you can actually see "
-        "or reasonably infer from the two photos: name the actual dominant colors, suggest "
-        "5-7 specific real-world props that would plausibly sit in this exact scene, spread "
-        "across foreground, midground and background so the frame feels richly styled and "
-        "full rather than sparse or empty, specify one clear light direction and quality, and "
-        "specify camera framing/depth of field.\n"
-        "- Explicitly state that any colorful shapes/accents from the background reference must "
-        "be rendered as soft, out-of-focus photographic bokeh with feathered edges — never as "
-        "flat, hard-edged cartoon/sticker shapes — and that the subject/product must rest on a "
-        "specific, clearly named real surface (name the actual surface, e.g. 'a light oak "
-        "desk') with a soft contact shadow directly beneath it, so the whole image reads as one "
-        "photograph with a single consistent light source and color grade rather than realistic "
-        "props layered over a flat graphic backdrop.\n"
-        "- Do not change the headline text — it must appear verbatim exactly as given.\n"
-        "- Do not invent new products or people that aren't in the photos.\n"
-        "- Output ONLY the rewritten brief as plain text. No preamble, no markdown, no "
-        "headers, no explanation of what you changed."
-    )
-
-    try:
-        response = client.models.generate_content(
-            model=GEMINI_TEXT_MODEL,
-            contents=[
-                types.Part(text="BACKGROUND PHOTO (image 1):"),
-                types.Part(inline_data=types.Blob(data=bg_bytes, mime_type=bg_mime)),
-                types.Part(text="BASE PHOTO (image 2):"),
-                types.Part(inline_data=types.Blob(data=base_bytes, mime_type=base_mime)),
-                types.Part(text=instruction),
-                types.Part(text=f"\nOriginal brief to rewrite:\n\n{base_prompt}"),
-                types.Part(text=f'\nHeadline text that must appear verbatim: "{headline.strip()}"'),
-            ],
-        )
-        enriched = (response.text or "").strip()
-        return enriched if enriched else base_prompt
-    except Exception:
-        # Enrichment is a nice-to-have, not a hard dependency — silently
-        # fall back to the original prompt rather than failing the request.
-        return base_prompt
-
-
 # Modular "Lock face / subject identity" add-on — OFF by default, toggled per
 # request from the Headline & Notes card in the frontend (checkbox sits right
 # below Notes). Appended to whichever prompt is about to be sent (preset,
@@ -1438,7 +1262,10 @@ def status():
         "auth_enabled": bool(APP_USERS),
         "gemini_ready": bool(GEMINI_API_KEY),
         "openai_ready": bool(OPENAI_API_KEY),
-        "default_provider": DEFAULT_IMAGE_PROVIDER,
+        "default_provider": "openai",
+        "thumbnail_prompt_model": OPENAI_TEXT_MODEL,
+        "thumbnail_image_model": OPENAI_THUMBNAIL_IMAGE_MODEL,
+        "thumbnail_prompt_enrichment_enabled": ENABLE_OPENAI_PROMPT_ENRICHMENT,
         "openai_call_path": "responses_api (reference-based generation)" if OPENAI_USE_RESPONSES_API
                             else "images.edit (legacy, literal-edit)",
         "openai_responses_model": OPENAI_RESPONSES_MODEL if OPENAI_USE_RESPONSES_API else None,
@@ -1520,7 +1347,7 @@ async def generate_thumbnail(
     custom_prompt: str = Form(""),
     provider: str = Form(""),
     quality:  str = Form(""),
-    enrich_prompt: str = Form("1"),   # OpenAI only: "1"/"0" — per-request enrichment toggle
+    enrich_prompt: str = Form("1"),   # "1"/"0" — per-request enrichment toggle
     preserve_face: str = Form("0"),   # "1"/"0" — appends FACE_LOCK_SNIPPET, off by default
     background_image: UploadFile = File(...),
     base_image:       UploadFile = File(...),
@@ -1529,19 +1356,13 @@ async def generate_thumbnail(
     # MultiP, which merges several products into one shot). Empty by default.
     extra_product_images: list[UploadFile] = File(default=[]),
 ):
-    provider = (provider or DEFAULT_IMAGE_PROVIDER).strip().lower()
-    if provider not in ("gemini", "openai"):
-        raise HTTPException(400, detail=f"Unknown provider '{provider}'. Use 'gemini' or 'openai'.")
-    if provider == "gemini" and not GEMINI_API_KEY:
-        raise HTTPException(503, detail="The Gemini image provider is not configured.")
-    if provider == "openai" and not OPENAI_API_KEY:
+    if provider and provider.strip().lower() != "openai":
+        raise HTTPException(400, detail="Thumbnail creation supports OpenAI only.")
+    if not OPENAI_API_KEY:
         raise HTTPException(503, detail="The OpenAI image provider is not configured.")
-    if provider == "openai":
-        if quality and quality.strip().lower() not in {"low", "medium", "high"}:
-            raise HTTPException(400, detail="Quality must be low, medium, or high.")
-        quality = _normalized_quality(quality)
-    else:
-        quality = ""
+    if quality and quality.strip().lower() not in {"low", "medium", "high"}:
+        raise HTTPException(400, detail="Quality must be low, medium, or high.")
+    quality = _normalized_quality(quality)
     headline = _bounded_text(headline, "Headline", 300, required=True)
     notes = _bounded_text(notes, "Notes", 4_000)
     custom_prompt = _bounded_text(custom_prompt, "Custom prompt", MAX_PROMPT_CHARS)
@@ -1560,139 +1381,55 @@ async def generate_thumbnail(
 
     _enforce_generation_rate_limit(request)
 
-    # Gemini and OpenAI get different prompt treatment on purpose:
-    #
-    # - Gemini (Nano Banana) needs heavy scaffolding — explicit "do not do X"
-    #   guardrails plus an LLM enrichment pass — because left to itself it
-    #   tends to flat-paste, invent a different product angle, or render
-    #   backgrounds as hard-edged cartoon shapes. That scaffolding was built
-    #   specifically to work around those failure modes.
-    # - OpenAI (GPT Image 2) presets never get Gemini's full "do not do X" #1/2/3
-    #   guardrail wrapper wholesale pasted on top — piling all of that on top
-    #   would be noise and could contradict phrasing GPT already follows well.
-    #   They DO get their own lighter-touch enrichment pass
-    #   (enrich_openai_prompt), because ChatGPT's interactive image tool was
-    #   silently doing that to your prompt the whole time you tested there —
-    #   so skipping it wasn't actually sending "the same thing that worked in
-    #   ChatGPT," it was sending less than that. That enrichment pass carries
-    #   exactly one narrow guardrail of its own (background reference = mood
-    #   board, not a literal layout to reproduce), added after live testing
-    #   showed the background photo's flat illustration gets reproduced
-    #   verbatim otherwise — see enrich_openai_prompt()'s docstring.
-    enrichment_used = None
-    enrichment_error = None
-    if provider == "openai":
-        prompt = custom_prompt if custom_prompt else build_thumbnail_prompt(headline, notes)
-        want_enrichment = (enrich_prompt or "1").strip() != "0"
-        try:
-            prompt, enrichment_used, enrichment_error = await _run_provider_call(
-                enrich_openai_prompt,
-                prompt, headline, bg_bytes, bg_mime, base_bytes, base_mime,
-                enabled=want_enrichment,
-            )
-        except HTTPException:
-            raise
-        except Exception as exc:
-            logger.warning("OpenAI prompt enrichment unavailable [error_type=%s]", type(exc).__name__)
-            enrichment_used, enrichment_error = False, "Prompt enrichment was unavailable."
-        if not enrichment_used:
-            logger.info("OpenAI prompt enrichment did not run: %s", enrichment_error)
-    else:
-        if custom_prompt:
-            prompt = (
-                "CRITICAL — DO NOT DO THIS #1: do not simply paste or overlay the product/subject "
-                "photo on top of the background photo like a sticker or flat collage. That is a "
-                "failure. Both input images are references only — the final image must be a single, "
-                "newly rendered photograph where the lighting, shadows, reflections and perspective "
-                "on the subject are completely redrawn to match a real photo shoot in the described "
-                "environment. The subject's shadow must fall naturally onto the new surface/background, "
-                "the color grading of the subject must match the new lighting, and the background must "
-                "NOT look like the original flat illustration — it must look like a real, physically "
-                "photographed 3D scene whose colors and mood are inspired by the reference image.\n\n"
-                "CRITICAL — DO NOT DO THIS #2: do not change WHAT you see of the product/subject. "
-                "'Relight' means changing the light source, shadows and color grade only — it does "
-                "NOT mean inventing a different camera angle, a different side of the object, a "
-                "different screen/display content, or a different pose. If the base photo shows the "
-                "BACK of a device, your output must also show the BACK of that device — never invent "
-                "a front view, a screen UI, or any surface/markings that are not visible in the "
-                "original photo. Copy the product's exact silhouette, angle, and visible surfaces "
-                "faithfully; only its lighting and surrounding environment should change.\n\n"
-                "CRITICAL — DO NOT DO THIS #3: do not render the background's colorful shapes as "
-                "flat, hard-edged, vector/sticker graphics — even after 'restyling' them. Every "
-                "colorful shape, glow, or accent in the final image must look like it was captured "
-                "by a real camera lens: softly out of focus, with gently feathered edges and natural "
-                "light falloff (true photographic bokeh), never a crisp cartoon outline. Also: the "
-                "product/subject must be resting on a clearly visible, photographically real surface "
-                "(e.g. a wood or light-colored desk/tabletop) with a soft, correctly-angled contact "
-                "shadow directly beneath it — do not leave it floating in front of an abstract color "
-                "backdrop with no ground plane. The entire image, props included, must share one "
-                "consistent warm light source and color grade so it reads as a single photograph, "
-                "not photorealistic props layered over a separate graphic background.\n\n"
-                "Now follow these detailed instructions:\n\n"
-                + custom_prompt
-                + "\n\nFinal reminders: (1) this must read as ONE cohesively lit photograph, not two "
-                "images stacked together — re-render, don't paste. (2) the product/subject must show "
-                "the exact same side/angle/view as in the base photo — do not rotate it or reveal a "
-                "side that wasn't photographed. (3) fill the frame with enough environmental detail "
-                "(props, depth, layers) that it doesn't look sparse or empty — aim for a busy, richly "
-                "styled desk/lifestyle scene, not a product floating in mostly empty space."
-            )
-        else:
-            prompt = build_thumbnail_prompt(headline, notes)
-
-        # Rewrite the brief into something more concrete/vivid before
-        # generating (grounded in the actual photos) — Gemini-only, see note
-        # above. Silently falls back to `prompt` unchanged on failure.
-        try:
-            prompt = await _run_provider_call(
-                enrich_thumbnail_prompt, prompt, headline, bg_bytes, bg_mime, base_bytes, base_mime
-            )
-        except HTTPException:
-            raise
-        except Exception as exc:
-            logger.warning("Gemini prompt enrichment unavailable [error_type=%s]", type(exc).__name__)
+    prompt = custom_prompt if custom_prompt else build_thumbnail_prompt(headline, notes)
+    want_enrichment = (enrich_prompt or "1").strip() != "0"
+    try:
+        prompt, enrichment_used, enrichment_error = await _run_provider_call(
+            enrich_openai_prompt,
+            prompt, headline, bg_bytes, bg_mime, base_bytes, base_mime,
+            enabled=want_enrichment,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("OpenAI prompt enrichment unavailable [error_type=%s]", type(exc).__name__)
+        enrichment_used, enrichment_error = False, "Prompt enrichment was unavailable."
+    if not enrichment_used:
+        logger.info("OpenAI prompt enrichment did not run: %s", enrichment_error)
 
     # Modular face/subject identity lock — applied last, after any enrichment
-    # rewrite, so it reaches the model verbatim regardless of provider or
-    # whether a preset/custom prompt or the plain notes-built prompt was used.
+    # rewrite, so it reaches the model verbatim for presets, custom prompts,
+    # and the plain notes-built prompt.
     if (preserve_face or "0").strip() == "1":
         prompt = prompt.rstrip() + "\n\n" + FACE_LOCK_SNIPPET
     prompt = _bounded_text(prompt, "Generated prompt", MAX_PROMPT_CHARS * 2, required=True)
 
     try:
-        if provider == "openai":
-            img_bytes = await _run_provider_call(
-                openai_generate_thumbnail,
-                prompt,
-                bg_bytes,  bg_mime,
-                base_bytes, base_mime,
-                quality=quality,
-                extra_base_images=extra_images,
-            )
-        else:
-            img_bytes = await _run_provider_call(
-                gemini_generate_thumbnail,
-                prompt,
-                bg_bytes,  bg_mime,
-                base_bytes, base_mime,
-                extra_base_images=extra_images,
-            )
+        img_bytes = await _run_provider_call(
+            openai_generate_thumbnail,
+            prompt,
+            bg_bytes,  bg_mime,
+            base_bytes, base_mime,
+            quality=quality,
+            extra_base_images=extra_images,
+        )
         img_bytes = await run_in_threadpool(_validate_generated_image, img_bytes)
     except HTTPException:
         raise
     except Exception as e:
-        raise _provider_failure("OpenAI" if provider == "openai" else "Gemini", e) from e
+        raise _provider_failure("OpenAI", e) from e
     label = headline[:60]
     image_b64 = base64.b64encode(img_bytes).decode()
     log_generation(request, source="thumbnail", label=label, prompt=prompt, image_b64=image_b64,
-                    provider=provider, quality=quality if provider == "openai" else None)
+                    provider="openai", quality=quality)
     return {
         "success": True,
         "id":     str(uuid.uuid4())[:8],
         "image":  image_b64,
         "format": "png",
-        "provider_used": provider,
-        "quality_used": quality if provider == "openai" else None,
+        "provider_used": "openai",
+        "image_model_used": OPENAI_THUMBNAIL_IMAGE_MODEL,
+        "quality_used": quality,
         "prompt_used": prompt,
         "enrichment_used": enrichment_used,
         "enrichment_error": enrichment_error,

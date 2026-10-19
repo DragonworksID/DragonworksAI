@@ -4,34 +4,16 @@ import { useToast } from '../Toast.jsx'
 import UploadBox from '../UploadBox.jsx'
 import { apiFetch } from '../api.js'
 
-// Locked pending further rollout — see the "AI Provider" card and "Image
-// Quality" row below for where these are enforced in the UI.
-const GEMINI_LOCKED = true
 const HIGH_QUALITY_LOCKED = true
 
 // ── Brand presets ────────────────────────────────────────────
-// Each preset has a SEPARATE prompt per provider, on purpose:
-// - `gemini` is heavily scaffolded to work around Nano Banana's specific
-//   failure modes (flat pasting, wrong product angle, cartoon backgrounds).
-// - `openai` is the original brief as written/tested for ChatGPT/GPT Image 2
-//   — sent through unmodified, since that model already follows it well and
-//   piling Gemini-specific guardrails on top would just be noise.
 // The "{{HEADLINE}}" token gets swapped for whatever the user typed in the
-// Headline field when the preset is applied, using whichever provider is
-// currently selected.
+// Headline field when the preset is applied.
 const PRESETS = [
   {
     id: 'lenovo-sp',
     brand: 'Lenovo-SP',
     templates: {
-      gemini: `Re-render this as ONE newly photographed image — not a cutout pasted onto a background. Vertical, 1080x1440px.
-Subject identity lock: keep the talent's face, pose, expression, and the product's EXACT shape, branding, and — critically — its exact camera angle/side/view from the Base Photo. If the Base Photo shows the back of the device, the output must also show the back of the device; never invent a front view, a screen/display image, or any surface not visible in the original photo. Natural skin texture, no plastic/AI-face look.
-Relight the subject from scratch (lighting/shadow/color-grade only — never the object's shape, pose, or visible side): warm, bright studio key light from the upper-left, soft fill light, soft natural shadow cast onto the surface/floor beneath them, so they look physically standing/sitting in the new scene (not floating on top of it).
-Grounding surface: place the subject on a clearly visible, photographically real surface (e.g. a light wood or pale desk/tabletop) with a soft, correctly-angled contact shadow directly beneath them — never leave them floating in front of an abstract backdrop with no ground plane.
-New background: do NOT reuse the Background Photo's flat illustrated/clip-art look directly, and do NOT render its colorful shapes as flat, hard-edged, vector/sticker graphics. Instead, build a real, softly-blurred lifestyle studio backdrop using its color palette (read the dominant colors from the Background Photo and reuse them as gradient/lighting colors) rendered as genuine photographic bokeh — softly out of focus, feathered edges, natural light falloff, as if captured by a real camera lens, never a crisp cartoon outline. Fill the scene generously — do not leave large areas of empty space. Include 5-7 real-world props spread across foreground, midground and background (e.g. stacked notebooks, a small potted plant, pens/pencils in a holder, sticky notes, headphones, a mug, a phone) so the frame reads as a richly styled, busy desk/lifestyle scene, not a product floating alone.
-Integration check: the subject's edge lighting, shadow direction, and color temperature must match the new background exactly, and the whole image (subject, props, background) must share one consistent light source and color grade — if it looks like two separate photos stacked together, redo it.
-Headline text: place "{{HEADLINE}}" across the top third of the image, split across 2-3 stacked lines. Large, bold, rounded sans-serif (TikTok/Shorts thumbnail style). Thick white stroke outline (~10px) and soft dark drop shadow on every line for a slight 3D pop. Color the first line white, the second line bright yellow, and the final/most important word in vibrant pink or magenta.
-Final look: premium commercial photography quality, sharp focus, energetic and youthful mood, clean spacing, readable in under 1 second on mobile.`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail.
 INPUTS: Cover photo product + Background reference image (replace the product's background with the background reference image)
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
@@ -76,14 +58,6 @@ QUALITY: Ultra realistic Commercial photography Premium advertising quality Shar
     id: 'lenovo-p',
     brand: 'Lenovo-P',
     templates: {
-      gemini: `Re-render this as ONE newly photographed image — not a cutout pasted onto a background. Vertical, 1080x1440px. No people in frame.
-Subject identity lock: keep the product's EXACT shape, packaging, color, branding, and — critically — its exact camera angle/side/view from the Base Photo unaltered. If the Base Photo shows the back of the device, the output must also show the back of the device; never invent a front view, a screen/display image, or any surface not visible in the original photo.
-Relight the product from scratch (lighting/shadow/color-grade only — never the object's shape or visible side): warm, bright studio key light from the upper-left, soft fill light, soft natural shadow cast onto the surface beneath it, so it looks physically placed in the new scene (not floating on top of it).
-Grounding surface: place the product on a clearly visible, photographically real surface (e.g. a light wood or pale desk/tabletop) with a soft, correctly-angled contact shadow directly beneath it — never leave it floating in front of an abstract backdrop with no ground plane.
-New background: do NOT reuse the Background Photo's flat illustrated/clip-art look directly, and do NOT render its colorful shapes as flat, hard-edged, vector/sticker graphics. Instead, build a real, softly-blurred lifestyle studio backdrop using its color palette (read the dominant colors from the Background Photo and reuse them as gradient/lighting colors) rendered as genuine photographic bokeh — softly out of focus, feathered edges, natural light falloff, as if captured by a real camera lens, never a crisp cartoon outline. Fill the scene generously — do not leave large areas of empty space. Include 5-7 real-world props spread across foreground, midground and background (e.g. stacked notebooks, a small potted plant, pens/pencils in a holder, sticky notes, headphones, a mug, a phone) so the frame reads as a richly styled, busy desk/lifestyle scene, not a product floating alone.
-Integration check: the product's edge lighting, shadow direction, and color temperature must match the new background exactly, and the whole image (product, props, background) must share one consistent light source and color grade — if it looks like two separate photos stacked together, redo it.
-Headline text: place "{{HEADLINE}}" across the top third of the image, split across 2-3 stacked lines. Large, bold, rounded sans-serif (TikTok/Shorts thumbnail style). Thick white stroke outline (~10px) and soft dark drop shadow on every line for a slight 3D pop. Color the first line white, the second line bright yellow, and the final/most important word in vibrant pink or magenta.
-Final look: premium commercial photography quality, sharp focus, energetic and youthful mood, clean spacing, readable in under 1 second on mobile.`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail.
 INPUTS: Product photo + Background reference image (replace the product's background with the background reference image)
 OBJECTIVE: Transform the product photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
@@ -126,53 +100,11 @@ QUALITY: Ultra realistic Commercial photography Premium advertising quality Shar
   },
   // ── Universal presets ──────────────────────────────────────
   // Not tied to a specific brand — pick by WHAT'S in the photo (talent only,
-  // product only, or both), for any campaign theme. Unlike the Lenovo presets
-  // above, these don't have a separately-engineered Gemini scaffold yet — the
-  // same brief is used for both providers below. If Gemini gets unlocked and
-  // these need Nano-Banana-specific guardrails, split `gemini` out like the
-  // Lenovo presets do.
+  // product only, or both), for any campaign theme.
   {
     id: 'universal-s',
     brand: 'Universal-S',
     templates: {
-      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail.
-INPUTS: Cover photo subject + Background reference image (replace the subject's background with the background reference image)
-Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
-OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference, replace the subject's current background with the uploaded background reference and make it natural.
-Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
-Background characteristics: Create a natural look ensuring the talent's face is clear and bright.
-Add: Subtle depth of field Light bokeh particles Soft ambient glow
-SUBJECT TREATMENT: Keep the subject recognizable, make it stand out and the focus point. Keep the original person recognizable.
-IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect,  No cartoon effect
-Enhance: Natural lighting Subject visibility Sharpness Contrast Product
-HEADLINE: {{HEADLINE}}
-TYPOGRAPHY: Premium viral Indonesian social media typography.
-Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
-Friendly, youthful, highly readable on mobile screens.
-Mixed font weights:
-- Main keywords ultra bold
-- Supporting words medium weight
-Text layout optimized for fast scanning within 1 second.
-Thick white stroke outline (8-12px)
-Soft dark drop shadow
-Slight 3D depth
-High contrast against background
-Important keywords highlighted using bright accent colors.
-Typography should feel:
-- modern
-- casual
-- relatable
-- energetic
-- social-media native
-Text spacing balanced and professional.
-Indonesian viral content style.
-CTR-optimized thumbnail typography.
-Premium advertising quality.
-Visual hierarchy: Subject Headline Background
-Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
-LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
-QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail.
 INPUTS: Cover photo subject + Background reference image (replace the subject's background with the background reference image)
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
@@ -217,44 +149,6 @@ QUALITY: Ultra realistic Commercial photography Premium advertising quality Shar
     id: 'universal-p',
     brand: 'Universal-P',
     templates: {
-      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail.
-INPUTS: Cover photo product + Background reference image (replace the product's background with the background reference image)
-Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
-OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference, replace the product's current background with the uploaded background reference and make it natural.
-Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
-Background characteristics: Create a natural look; add a raised, colorful effect beside or behind the product without obscuring any part of it.
-Add: Subtle depth of field Light bokeh particles Soft ambient glow
-SUBJECT TREATMENT: The product is the sole subject and absolute focus point of the image. Do NOT include any people, talent, hands, or human presence anywhere in the frame — product only. Keep the product recognizable and standing out as the hero of the shot.
-IMPORTANT: Preserve product identity exactly. Preserve the product's exact shape, packaging, color, branding and markings. Realistic photography look, No AI-generated distortion, No cartoon effect, No invented or altered product details.
-Enhance: Natural lighting Product visibility Sharpness Contrast
-HEADLINE: {{HEADLINE}}
-TYPOGRAPHY: Premium viral Indonesian social media typography.
-Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
-Friendly, youthful, highly readable on mobile screens.
-Mixed font weights:
-- Main keywords ultra bold
-- Supporting words medium weight
-Text layout optimized for fast scanning within 1 second.
-Thick white stroke outline (8-12px)
-Soft dark drop shadow
-Slight 3D depth
-High contrast against background
-Important keywords highlighted using bright accent colors.
-Typography should feel:
-- modern
-- casual
-- relatable
-- energetic
-- social-media native
-Text spacing balanced and professional.
-Indonesian viral content style.
-CTR-optimized thumbnail typography.
-Premium advertising quality.
-Visual hierarchy: Product Headline Background
-Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
-LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
-QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail.
 INPUTS: Cover photo product + Background reference image (replace the product's background with the background reference image)
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
@@ -299,44 +193,6 @@ QUALITY: Ultra realistic Commercial photography Premium advertising quality Shar
     id: 'universal-sp',
     brand: 'Universal-SP',
     templates: {
-      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail.
-INPUTS: Cover photo subject + product + Background reference image (replace the background with the background reference image)
-Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
-OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference, replace the current background with the uploaded background reference and make it natural.
-Maintain: Overall color palette, Gradient direction, Lighting, atmosphere, Visual mood
-Background characteristics: Create a natural look ensuring the talent's face is clear and bright.
-Add: Subtle depth of field Light bokeh particles Soft ambient glow
-SUBJECT TREATMENT: Keep both the subject/talent and the product recognizable, make them stand out together as the focus point. Keep the original person and the product recognizable.
-IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, branding and markings — no invented or altered product details.
-Enhance: Natural lighting Subject visibility Product visibility Sharpness Contrast
-HEADLINE: {{HEADLINE}}
-TYPOGRAPHY: Premium viral Indonesian social media typography.
-Large bold rounded sans-serif font, similar to TikTok and YouTube Shorts thumbnails.
-Friendly, youthful, highly readable on mobile screens.
-Mixed font weights:
-- Main keywords ultra bold
-- Supporting words medium weight
-Text layout optimized for fast scanning within 1 second.
-Thick white stroke outline (8-12px)
-Soft dark drop shadow
-Slight 3D depth
-High contrast against background
-Important keywords highlighted using bright accent colors.
-Typography should feel:
-- modern
-- casual
-- relatable
-- energetic
-- social-media native
-Text spacing balanced and professional.
-Indonesian viral content style.
-CTR-optimized thumbnail typography.
-Premium advertising quality.
-Visual hierarchy: Subject Product Headline Background
-Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
-LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
-QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail.
 INPUTS: Cover photo subject + product + Background reference image (replace the background with the background reference image)
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
@@ -382,31 +238,11 @@ QUALITY: Ultra realistic Commercial photography Premium advertising quality Shar
   // LEGO Indonesia's brand system (brick colors, yellow/red/yellow banner
   // stack, toy-commercial lighting). LEGO-P is the brief as given; LEGO-S
   // and LEGO-SP are derived from it the same way Lenovo-P/Universal-P were
-  // derived from their SP counterparts. Same provider-sharing note as
-  // Universal: no separately-tuned Gemini scaffold yet.
+  // derived from their SP counterparts.
   {
     id: 'lego-s',
     brand: 'LEGO-S',
     templates: {
-      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
-INPUTS: Cover photo (talent/subject) + Background reference image
-Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
-OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference as the primary visual environment.
-Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
-Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
-Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
-SUBJECT TREATMENT: Keep the original person/talent recognizable.
-IMPORTANT: Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect
-Enhance: Natural lighting, Subject visibility, Sharpness, Contrast, Subject separation from background
-HEADLINE: {{HEADLINE}}
-TYPOGRAPHY: Large bold rounded display font.
-Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
-TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
-COMPOSITION: Visual hierarchy: Headline Face Background. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
-LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
-STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
-QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
@@ -432,27 +268,6 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
     id: 'lego-p',
     brand: 'LEGO-P',
     templates: {
-      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
-INPUTS: Cover photo (LEGO product) + Background reference image
-Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
-OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference as the primary visual environment.
-Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
-Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
-Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
-SUBJECT TREATMENT: Keep the original product recognizable.
-IMPORTANT: Preserve product identity.
-Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
-PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
-Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
-HEADLINE: {{HEADLINE}}
-TYPOGRAPHY: Large bold rounded display font.
-Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
-TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
-COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
-LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
-STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
-QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
 INPUTS: Cover photo (LEGO product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
@@ -480,27 +295,6 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
     id: 'lego-sp',
     brand: 'LEGO-SP',
     templates: {
-      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
-INPUTS: Cover photo (talent + LEGO product) + Background reference image
-Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
-OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference as the primary visual environment.
-Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO.
-Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
-Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
-SUBJECT TREATMENT: Keep the original person and the LEGO product both recognizable.
-IMPORTANT: Preserve facial and product identity. Preserve facial identity, Natural skin texture, Realistic photography look, No AI-generated face appearance, No excessive beauty filter, No plastic skin, No exaggerated facial features, No cartoon effect. Preserve the product's exact shape, packaging, color, and branding — no invented or altered product details.
-Enhance: Natural lighting, Subject visibility, Product visibility, Sharpness, Contrast, Subject separation from background
-PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
-Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
-HEADLINE: {{HEADLINE}}
-TYPOGRAPHY: Large bold rounded display font.
-Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
-TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
-COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
-LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
-STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
-QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia.
 INPUTS: Cover photo (talent + LEGO product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
@@ -532,27 +326,6 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
     id: 'lego-multip',
     brand: 'LEGO-MultiP',
     templates: {
-      gemini: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia. Combine these two products into one image.
-INPUTS: Cover photo (LEGO product) + Background reference image
-Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
-OUTPUT SIZE: 1080 x 1440 px Vertical format TikTok optimized
-BACKGROUND: Use the uploaded background reference as the primary visual environment.
-Maintain: Overall color palette, Gradient direction, Lighting atmosphere, Visual mood. DO NOT ADD THE LEGO ICON/LOGO. DO NOT ADD THE TALENT OR PERSON, STRICTLY PRODUCT ONLY.
-Background characteristics: Bright and cheerful, Premium and modern, Soft dreamy gradient, Clean composition, Family-friendly atmosphere, Minimal clutter
-Add: Floating LEGO bricks in red, yellow, blue, and green, Soft cloud elements if applicable, Subtle depth of field, Light bokeh particles, Soft ambient glow
-PRODUCT TREATMENT: Keep the original product recognizable. Merge all of the product images into one.
-IMPORTANT: Preserve product identity. Maintain the table the products is on.
-Enhance: Natural lighting, Product visibility, Sharpness, Contrast, Subject separation from background
-PRODUCT TREATMENT: Keep all LEGO products accurate and realistic.
-Enhance: Packaging visibility, Product details, Reflections, Contrast, Premium appearance
-HEADLINE: {{HEADLINE}}
-TYPOGRAPHY: Large bold rounded display font.
-Style: LEGO-inspired, White text, Thick black outline, Strong shadow, High readability, Mobile-first design, Premium 3D effect
-TITLE BANNER SYSTEM: Always use the same LEGO Indonesia banner design: Top Banner: LEGO Yellow (#FFD500), Red text. Middle Banner: LEGO Red (#D01012), White text. Bottom Banner: LEGO Yellow (#FFD500), Black text. Banner Style: Rounded corners, Glossy finish, Slight 3D extrusion, Soft highlights, Consistent positioning
-COMPOSITION: Visual hierarchy: Headline Face LEGO Product. Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
-LIGHTING: Commercial advertising photography. Use: Soft premium highlights, Natural shadows, Bright cheerful mood, High-end toy commercial lighting
-STYLE REFERENCE: Official LEGO Indonesia Premium social media campaign, TikTok viral thumbnail, Modern toy advertising, High CTR design
-QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Natural human appearance, Consistent LEGO Indonesia branding, 1080x1440`,
       openai: `You are a professional advertising designer creating a premium TikTok thumbnail for LEGO Indonesia. Combine these two products into one image.
 INPUTS: Cover photo (LEGO product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent LEGO Indonesia visual identity across all content.
@@ -588,16 +361,14 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
 // typography per lineup so the output matches that lineup's official look
 // regardless of what background photo gets uploaded (same "override the
 // uploaded background with a fixed brand identity" approach the LEGO presets
-// already use). Like Universal/LEGO, no separately-tuned Gemini scaffold —
-// same brief for both providers; split `gemini` out later if Gemini gets
-// unlocked and needs Nano-Banana-specific guardrails.
+// already use).
 const LENOVO_THEMES = [
   {
     id: 'legion-tab',
     label: 'Legion Tab',
     tagline: 'Play All Out',
     variants: {
-      SP: { id: 'lenovo-legion-tab-sp', templates: { gemini:
+      SP: { id: 'lenovo-legion-tab-sp', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Legion Tab.
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
@@ -615,8 +386,8 @@ COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain cle
 LIGHTING: Commercial advertising photography. Use: Dramatic rim lighting, Deep atmospheric shadows, High-energy rival-color esports mood, cinematic smoke and spark effects
 STYLE REFERENCE: Official Lenovo Legion Tab "Play All Out" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Legion Tab branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      P: { id: 'lenovo-legion-tab-p', templates: { gemini:
+      } },
+      P: { id: 'lenovo-legion-tab-p', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Legion Tab.
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
@@ -634,8 +405,8 @@ COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Dramatic rim lighting, Deep atmospheric shadows, High-energy rival-color esports mood, cinematic smoke and spark effects
 STYLE REFERENCE: Official Lenovo Legion Tab "Play All Out" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Legion Tab branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      S: { id: 'lenovo-legion-tab-s', templates: { gemini:
+      } },
+      S: { id: 'lenovo-legion-tab-s', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Legion Tab.
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Legion Tab "Play All Out" visual identity across all content.
@@ -653,7 +424,7 @@ COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Dramatic rim lighting, Deep atmospheric shadows, High-energy rival-color esports mood, cinematic smoke and spark effects
 STYLE REFERENCE: Official Lenovo Legion Tab "Play All Out" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Legion Tab branding, 1080x1440`,
-      get openai() { return this.gemini } } },
+      } },
     },
   },
   {
@@ -661,7 +432,7 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
     label: 'Yoga Tab',
     tagline: 'Flow In Color',
     variants: {
-      SP: { id: 'lenovo-yoga-tab-sp', templates: { gemini:
+      SP: { id: 'lenovo-yoga-tab-sp', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Yoga Tab.
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
@@ -679,8 +450,8 @@ COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain cle
 LIGHTING: Commercial advertising photography. Use: Bright natural daylight, Soft ambient LED accent glow, Clean fresh mood, crisp modern highlights
 STYLE REFERENCE: Official Lenovo Yoga Tab "Flow In Color" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Yoga Tab branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      P: { id: 'lenovo-yoga-tab-p', templates: { gemini:
+      } },
+      P: { id: 'lenovo-yoga-tab-p', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Yoga Tab.
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
@@ -698,8 +469,8 @@ COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Bright natural daylight, Soft ambient LED accent glow, Clean fresh mood, crisp modern highlights
 STYLE REFERENCE: Official Lenovo Yoga Tab "Flow In Color" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Yoga Tab branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      S: { id: 'lenovo-yoga-tab-s', templates: { gemini:
+      } },
+      S: { id: 'lenovo-yoga-tab-s', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Yoga Tab.
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Yoga Tab "Flow In Color" visual identity across all content.
@@ -717,7 +488,7 @@ COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Bright natural daylight, Soft ambient LED accent glow, Clean fresh mood, crisp modern highlights
 STYLE REFERENCE: Official Lenovo Yoga Tab "Flow In Color" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Yoga Tab branding, 1080x1440`,
-      get openai() { return this.gemini } } },
+      } },
     },
   },
   {
@@ -725,7 +496,7 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
     label: 'Idea Tab Pro',
     tagline: 'Create More, Achieve More',
     variants: {
-      SP: { id: 'lenovo-idea-tab-pro-sp', templates: { gemini:
+      SP: { id: 'lenovo-idea-tab-pro-sp', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Idea Tab Pro.
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
@@ -743,8 +514,8 @@ COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain cle
 LIGHTING: Commercial advertising photography. Use: Warm golden-hour highlights, Soft directional sunset light, Premium executive mood, cinematic warm glow
 STYLE REFERENCE: Official Lenovo Idea Tab Pro "Create More, Achieve More" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Idea Tab Pro branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      P: { id: 'lenovo-idea-tab-pro-p', templates: { gemini:
+      } },
+      P: { id: 'lenovo-idea-tab-pro-p', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Idea Tab Pro.
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
@@ -762,8 +533,8 @@ COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Warm golden-hour highlights, Soft directional sunset light, Premium executive mood, cinematic warm glow
 STYLE REFERENCE: Official Lenovo Idea Tab Pro "Create More, Achieve More" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Idea Tab Pro branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      S: { id: 'lenovo-idea-tab-pro-s', templates: { gemini:
+      } },
+      S: { id: 'lenovo-idea-tab-pro-s', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo Idea Tab Pro.
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent Lenovo Idea Tab Pro "Create More, Achieve More" visual identity across all content.
@@ -781,7 +552,7 @@ COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Warm golden-hour highlights, Soft directional sunset light, Premium executive mood, cinematic warm glow
 STYLE REFERENCE: Official Lenovo Idea Tab Pro "Create More, Achieve More" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent Lenovo Idea Tab Pro branding, 1080x1440`,
-      get openai() { return this.gemini } } },
+      } },
     },
   },
   {
@@ -789,7 +560,7 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
     label: 'MotoPad 60 Lite',
     tagline: 'Fun Made Easy',
     variants: {
-      SP: { id: 'lenovo-motopad-60-lite-sp', templates: { gemini:
+      SP: { id: 'lenovo-motopad-60-lite-sp', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Lite.
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
@@ -807,8 +578,8 @@ COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain cle
 LIGHTING: Commercial advertising photography. Use: Soft natural window light, Gentle shadow patterns, Clean bright mood, crisp daylight glow
 STYLE REFERENCE: Official MotoPad 60 Lite "Fun Made Easy" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Lite branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      P: { id: 'lenovo-motopad-60-lite-p', templates: { gemini:
+      } },
+      P: { id: 'lenovo-motopad-60-lite-p', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Lite.
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
@@ -826,8 +597,8 @@ COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Soft natural window light, Gentle shadow patterns, Clean bright mood, crisp daylight glow
 STYLE REFERENCE: Official MotoPad 60 Lite "Fun Made Easy" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Lite branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      S: { id: 'lenovo-motopad-60-lite-s', templates: { gemini:
+      } },
+      S: { id: 'lenovo-motopad-60-lite-s', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Lite.
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Lite "Fun Made Easy" visual identity across all content.
@@ -845,7 +616,7 @@ COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Soft natural window light, Gentle shadow patterns, Clean bright mood, crisp daylight glow
 STYLE REFERENCE: Official MotoPad 60 Lite "Fun Made Easy" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Lite branding, 1080x1440`,
-      get openai() { return this.gemini } } },
+      } },
     },
   },
   {
@@ -853,7 +624,7 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
     label: 'MotoPad 60 Neo',
     tagline: 'Good Days, Every Day',
     variants: {
-      SP: { id: 'lenovo-motopad-60-neo-sp', templates: { gemini:
+      SP: { id: 'lenovo-motopad-60-neo-sp', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Neo.
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
@@ -871,8 +642,8 @@ COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain cle
 LIGHTING: Commercial advertising photography. Use: Warm lamp-glow highlights, Deep ambient shadows, Calm cozy mood, quiet nighttime glow
 STYLE REFERENCE: Official MotoPad 60 Neo "Good Days, Every Day" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Neo branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      P: { id: 'lenovo-motopad-60-neo-p', templates: { gemini:
+      } },
+      P: { id: 'lenovo-motopad-60-neo-p', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Neo.
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
@@ -890,8 +661,8 @@ COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Warm lamp-glow highlights, Deep ambient shadows, Calm cozy mood, quiet nighttime glow
 STYLE REFERENCE: Official MotoPad 60 Neo "Good Days, Every Day" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Neo branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      S: { id: 'lenovo-motopad-60-neo-s', templates: { gemini:
+      } },
+      S: { id: 'lenovo-motopad-60-neo-s', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Neo.
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Neo "Good Days, Every Day" visual identity across all content.
@@ -909,7 +680,7 @@ COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Warm lamp-glow highlights, Deep ambient shadows, Calm cozy mood, quiet nighttime glow
 STYLE REFERENCE: Official MotoPad 60 Neo "Good Days, Every Day" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Neo branding, 1080x1440`,
-      get openai() { return this.gemini } } },
+      } },
     },
   },
   {
@@ -917,7 +688,7 @@ QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, S
     label: 'MotoPad 60 Pro',
     tagline: 'Bold Days, Best You',
     variants: {
-      SP: { id: 'lenovo-motopad-60-pro-sp', templates: { gemini:
+      SP: { id: 'lenovo-motopad-60-pro-sp', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Pro.
 INPUTS: Cover photo (talent + product) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
@@ -935,8 +706,8 @@ COMPOSITION: Visual hierarchy: Subject Product Headline Background. Maintain cle
 LIGHTING: Commercial advertising photography. Use: Low-key ambient highlights, Deep natural shadows, Moody dramatic mood, night-time RGB gaming-setup lighting
 STYLE REFERENCE: Official MotoPad 60 Pro "Bold Days, Best You" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Pro branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      P: { id: 'lenovo-motopad-60-pro-p', templates: { gemini:
+      } },
+      P: { id: 'lenovo-motopad-60-pro-p', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Pro.
 INPUTS: Cover photo (product) + Background reference image. No people in frame.
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
@@ -954,8 +725,8 @@ COMPOSITION: Visual hierarchy: Product Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Low-key ambient highlights, Deep natural shadows, Moody dramatic mood, night-time RGB gaming-setup lighting
 STYLE REFERENCE: Official MotoPad 60 Pro "Bold Days, Best You" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Pro branding, 1080x1440`,
-      get openai() { return this.gemini } } },
-      S: { id: 'lenovo-motopad-60-pro-s', templates: { gemini:
+      } },
+      S: { id: 'lenovo-motopad-60-pro-s', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail for Lenovo MotoPad 60 Pro.
 INPUTS: Cover photo (talent/subject) + Background reference image
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent MotoPad 60 Pro "Bold Days, Best You" visual identity across all content.
@@ -973,7 +744,7 @@ COMPOSITION: Visual hierarchy: Subject Headline Background. Maintain clear spaci
 LIGHTING: Commercial advertising photography. Use: Low-key ambient highlights, Deep natural shadows, Moody dramatic mood, night-time RGB gaming-setup lighting
 STYLE REFERENCE: Official MotoPad 60 Pro "Bold Days, Best You" premium social media campaign, TikTok viral thumbnail, Modern tech advertising, High CTR design
 QUALITY: Ultra realistic, Commercial photography, Premium advertising quality, Sharp focus, Consistent MotoPad 60 Pro branding, 1080x1440`,
-      get openai() { return this.gemini } } },
+      } },
     },
   },
 ]
@@ -996,7 +767,7 @@ const DEBS_THEMES = [
     label: 'Billboard',
     tagline: '',
     variants: {
-      S: { id: 'debs-billboard-s', templates: { gemini:
+      S: { id: 'debs-billboard-s', templates: { openai:
 `You are a professional advertising designer creating a premium TikTok thumbnail.
 INPUTS: Cover photo product + Background reference image (replace the product's background with the background reference image)
 Headline text OBJECTIVE: Transform the cover photo into a premium, high-CTR TikTok thumbnail while maintaining a consistent visual identity across all content.
@@ -1036,7 +807,7 @@ Visual hierarchy: Subject Headline Background
 Maintain clear spacing. Avoid clutter. Keep the layout balanced. Ensure readability on mobile screens.
 LIGHTING: Commercial advertising photography. Use: Soft premium highlights Natural shadows Bright educational mood, casual and youthful energy
 QUALITY: Ultra realistic Commercial photography Premium advertising quality Sharp focus 1080x1440`,
-      get openai() { return this.gemini } } },
+      } },
     },
   },
 ]
@@ -1106,20 +877,15 @@ export default function ThumbnailCreator() {
   const [result, setResult]       = useState(null)
   const [loading, setLoading]     = useState(false)
   const [showPrompt, setShowPrompt] = useState(false)
-  // Default provider is OpenAI at Low quality with enrichment off — the
-  // lowest-cost combination — since Gemini and High quality are locked below
-  // to control spend. Flip GEMINI_LOCKED/HIGH_QUALITY_LOCKED above to
-  // re-enable either once you're ready.
-  const [provider, setProvider]   = useState('openai')   // 'gemini' | 'openai'
-  const [quality, setQuality]     = useState('low')       // OpenAI only: 'low' | 'medium' | 'high'
-  const [enrichPrompt, setEnrichPrompt] = useState(false)  // OpenAI only: ChatGPT-style prompt rewrite on/off
+  const [quality, setQuality]     = useState('low')
+  const [enrichPrompt, setEnrichPrompt] = useState(false)
 
   function handleApplyPreset(preset) {
     if (!headline.trim()) {
       showToast('Please type the Headline first, then apply a brand preset.')
       return
     }
-    const tpl = preset.templates[provider] || preset.templates.gemini
+    const tpl = preset.templates.openai
     const filled = tpl.replace('{{HEADLINE}}', headline.trim())
     setPresetPrompt(filled)
     setActivePresetId(preset.id)
@@ -1144,11 +910,8 @@ export default function ThumbnailCreator() {
 
     const fd = new FormData()
     fd.append('headline', headline)
-    fd.append('provider', provider)
-    if (provider === 'openai') {
-      fd.append('quality', quality)
-      fd.append('enrich_prompt', enrichPrompt ? '1' : '0')
-    }
+    fd.append('quality', quality)
+    fd.append('enrich_prompt', enrichPrompt ? '1' : '0')
     fd.append('preserve_face', preserveFace ? '1' : '0')
     fd.append('background_image', bgImage.file)
     fd.append('base_image', primaryProductFile)
@@ -1171,9 +934,11 @@ export default function ThumbnailCreator() {
         image:    data.image,
         label:    data.label,
         prompt:   data.prompt_used || '',
-        provider: data.provider_used || provider,
+        provider: data.provider_used || 'openai',
+        imageModel: data.image_model_used || 'OpenAI',
         quality:  data.quality_used || null,
-        enrichmentUsed:  data.enrichment_used ?? null,   // OpenAI only: true/false/null
+        enrichmentRequested: enrichPrompt,
+        enrichmentUsed:  data.enrichment_used ?? null,
         enrichmentError: data.enrichment_error || null,
         ratio:    '1080x1440',
         ts:       new Date().toLocaleTimeString(),
@@ -1225,36 +990,14 @@ export default function ThumbnailCreator() {
         {/* LEFT — Inputs */}
         <div>
           <div className="card">
-            <div className="card-title">AI Provider</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                className="btn-secondary"
-                disabled={GEMINI_LOCKED}
-                title={GEMINI_LOCKED ? 'Gemini is temporarily locked to control costs.' : undefined}
-                style={GEMINI_LOCKED
-                  ? { opacity: 0.5, cursor: 'not-allowed' }
-                  : (provider === 'gemini' ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined)}
-                onClick={() => !GEMINI_LOCKED && setProvider('gemini')}
-              >
-                {GEMINI_LOCKED ? '🔒 ' : provider === 'gemini' ? '✓ ' : ''}Gemini
-              </button>
-              <button
-                className="btn-secondary"
-                style={provider === 'openai' ? { borderColor: 'var(--accent, #8b5cf6)' } : undefined}
-                onClick={() => setProvider('openai')}
-              >
-                {provider === 'openai' ? '✓ ' : ''}OpenAI
-              </button>
-            </div>
-
-            {provider === 'openai' && (
-              <div style={{ marginTop: 12 }}>
+            <div className="card-title">OpenAI Image Settings</div>
+            <div>
                 <div className="form-label" style={{ marginBottom: 6 }}>Image Quality</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
-                    { key: 'low',    label: 'Low',    cost: '~$0.005/image' },
-                    { key: 'medium', label: 'Medium', cost: '~$0.041/image' },
-                    { key: 'high',   label: 'High',   cost: '~$0.165/image', locked: HIGH_QUALITY_LOCKED },
+                    { key: 'low',    label: 'Low',    cost: '~$0.005 output' },
+                    { key: 'medium', label: 'Medium', cost: '~$0.041 output' },
+                    { key: 'high',   label: 'High',   cost: '~$0.165 output', locked: HIGH_QUALITY_LOCKED },
                   ].map(q => (
                     <button
                       key={q.key}
@@ -1270,6 +1013,9 @@ export default function ThumbnailCreator() {
                     </button>
                   ))}
                 </div>
+                <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 6 }}>
+                  GPT Image 2 image-output estimates per portrait. Uploaded references and prompt processing cost extra.
+                </div>
 
                 <div style={{ marginTop: 14 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
@@ -1282,12 +1028,11 @@ export default function ThumbnailCreator() {
                   </label>
                   <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 6 }}>
                     {enrichPrompt
-                      ? 'On: your preset is rewritten into a more vivid, concrete brief before it’s sent — mirrors what ChatGPT quietly does to every prompt you type there.'
-                      : 'Off: sends your preset completely RAW and unmodified, exactly as written below — useful for comparing against the enriched version.'}
+                      ? 'On: an OpenAI text model reviews the reference photos and rewrites the brief before image generation.'
+                      : 'Off: skips the optional rewrite. The OpenAI image service may still revise the prompt internally.'}
                   </div>
                 </div>
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="card">
@@ -1416,8 +1161,7 @@ export default function ThumbnailCreator() {
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 10 }}>
               Fill in the Headline above, then pick a brand and a version to auto-fill its full
-              prompt below. Each version is tuned for the AI Provider selected above — if you
-              switch providers after applying one, click the version again to load the matching one.
+              prompt below.
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {PRESET_GROUPS.map(group => {
@@ -1544,7 +1288,7 @@ export default function ThumbnailCreator() {
               {loading ? '⏳ Generating…' : result ? '✅ Result' : '🎨 Thumbnail'}
               {result?.provider && (
                 <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-dim)', marginLeft: 8 }}>
-                  via {result.provider === 'openai' ? 'OpenAI (GPT Image 2)' : 'Gemini (Nano Banana Pro)'}
+                  via {result.imageModel}
                   {result.quality && ` · ${result.quality} quality`}
                 </span>
               )}
@@ -1577,19 +1321,17 @@ export default function ThumbnailCreator() {
             )}
           </div>
 
-          {result?.provider === 'openai' && result.enrichmentUsed === false && (
+          {result?.enrichmentRequested && result.enrichmentUsed === false && (
             <div className="error-banner" style={{ marginTop: 12, fontSize: 11 }}>
               <span>⚠️</span>
               <span>
-                ChatGPT-style prompt enrichment did NOT run for this generation — the raw
-                preset was sent as-is. Reason: {result.enrichmentError || 'unknown'}.
-                Check the backend terminal for a matching <code>[enrich_openai_prompt]</code> log line.
+                Prompt enhancement did not run for this generation. Reason: {result.enrichmentError || 'unknown'}.
               </span>
             </div>
           )}
-          {result?.provider === 'openai' && result.enrichmentUsed === true && (
+          {result && result.enrichmentUsed === true && (
             <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-dim)' }}>
-              ✅ ChatGPT-style prompt enrichment ran successfully for this generation.
+              ✅ Prompt enhancement ran for this generation.
             </div>
           )}
 
@@ -1600,7 +1342,7 @@ export default function ThumbnailCreator() {
                 style={{ fontSize: 11 }}
                 onClick={() => setShowPrompt(v => !v)}
               >
-                {showPrompt ? '▲ Hide' : '▼ Show'} prompt actually sent to the AI
+                {showPrompt ? '▲ Hide' : '▼ Show'} prompt sent to OpenAI
               </button>
               {showPrompt && (
                 <textarea
